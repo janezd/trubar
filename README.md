@@ -4,6 +4,14 @@ A tool for localization of Python messages via translating source files.
 
 Use `trubar -h` for help, or `trubar <action> -h` for help on specific actions.
 
+#### Installation
+
+Trubar is pip-installable:
+
+```sh
+pip install trubar`
+```
+
 #### Orange-related peculiarities
 
 The tool was developed for Orange. The number of Orange-related things is small (perhaps just a root directory, as described below and which can be changed with an option, and this documentation?) and will be removed in the future if we consider the tool could be useful for other projects as well.
