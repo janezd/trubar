@@ -5,7 +5,7 @@ from typing import Union, Iterator, Tuple, Dict, List, Optional
 
 import yaml
 import libcst as cst
-
+from libcst.metadata import ParentNodeProvider
 
 __all__ = ["collect", "translate", "update", "missing", "load", "dump",
            "set_root_dir", "any_translations"]
@@ -19,11 +19,12 @@ NamespaceNode = Union[cst.Module, cst.FunctionDef, cst.ClassDef]
 @dataclass
 class State:
     node: NamespaceNode
-    blacklist: List[cst.CSTNode]
     name: str
 
 
 class StringCollector(cst.CSTVisitor):
+    METADATA_DEPENDENCIES = (ParentNodeProvider, )
+
     def __init__(self):
         super().__init__()
         self.module: Optional[cst.Module] = None
@@ -42,15 +43,7 @@ class StringCollector(cst.CSTVisitor):
         self.pop_context()
 
     def push_context(self, node: NamespaceNode, name=None) -> None:
-        blacklist = [
-            child.body[0].value
-            for child in (node.body if isinstance(node, cst.Module)
-                          else node.body.children)
-            if isinstance(child, cst.SimpleStatementLine)
-            and len(child.body) == 1
-            and isinstance(child.body[0], cst.Expr)
-            and isinstance(child.body[0].value, cst.SimpleString)]
-        self.function_stack.append(State(node, blacklist, name))
+        self.function_stack.append(State(node, name))
         self.contexts.append({})
 
     def pop_context(self) -> None:
@@ -62,7 +55,11 @@ class StringCollector(cst.CSTVisitor):
             self.contexts[-1][state.name or state.node.name.value] = context
 
     def blacklisted(self, node: cst.CSTNode) -> bool:
-        return self.function_stack and node in self.function_stack[-1].blacklist
+        ssl = self.get_metadata(ParentNodeProvider, node)
+        return (isinstance(ssl, cst.SimpleStatementLine)
+                and len(ssl.body) == 1
+                and self.get_metadata(ParentNodeProvider, ssl)
+                is self.function_stack[-1])
 
     def visit_ClassDef(self, node: cst.ClassDef) -> None:
         self.push_context(node)
@@ -81,6 +78,7 @@ class StringCollector(cst.CSTVisitor):
             node: cst.FormattedStringExpression) -> None:
         if not self.blacklisted(node):
             self.contexts[-1][self.module.code_for_node(node)[2:-1]] = None
+        return False
 
     def visit_SimpleString(self, node: cst.SimpleString) -> None:
         s = self.module.code_for_node(node)[1:-1]
@@ -154,7 +152,7 @@ def collect(pattern: str) -> MsgDict:
     for *_, fullname in walk_files(pattern):
         print(f"Parsing {fullname}")
         with open(fullname) as f:
-            tree = cst.parse_module(f.read())
+            tree = cst.metadata.MetadataWrapper(cst.parse_module(f.read()))
             collector.open_module(fullname)
             tree.visit(collector)
     return collector.contexts[0]
