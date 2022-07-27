@@ -205,7 +205,8 @@ def load(filename: str) -> MsgDict:
         print(f"File not found: {filename}")
         sys.exit(2)
     try:
-        return yaml.load(open(filename))
+        return yaml.load(open(filename), Loader=yaml.Loader
+        )
     except yaml.YAMLError as exc:
         print(f"Error while reading file: {exc}")
         sys.exit(3)
