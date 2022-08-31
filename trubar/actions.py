@@ -14,7 +14,7 @@ root_dir = ""
 
 MsgDict = Dict[str, Union["MsgDict", str]]
 NamespaceNode = Union[cst.Module, cst.FunctionDef, cst.ClassDef]
-
+SomeString = Union[cst.SimpleString, cst.FormattedString]
 
 @dataclass
 class State:
@@ -76,12 +76,14 @@ class StringCollector(cst.CSTVisitor):
     def visit_FormattedString(
             self,
             node: cst.FormattedStringExpression) -> None:
+        lq = len(node.quote)
         if not self.blacklisted(node):
-            self.contexts[-1][self.module.code_for_node(node)[2:-1]] = None
+            self.contexts[-1][self.module.code_for_node(node)[len(node.prefix) + lq:-lq]] = None
         return False
 
     def visit_SimpleString(self, node: cst.SimpleString) -> None:
-        s = self.module.code_for_node(node)[1:-1]
+        lq = len(node.quote)
+        s = self.module.code_for_node(node)[len(node.prefix) + lq:-lq]
         if s and not self.blacklisted(node):
             self.contexts[-1][s] = None
 
@@ -108,15 +110,15 @@ class StringTranslator(cst.CSTTransformer):
 
     def __translate(
             self,
-            node: cst.CSTNode, updated_node: cst.CSTNode,
-            pref: str) -> cst.CSTNode:
+            node: SomeString, updated_node: SomeString) -> SomeString:
         if not self.context:
             return updated_node
-        original = self.module.code_for_node(node)[1 + len(pref):-1]
+        lq = len(node.quote)
+        original = self.module.code_for_node(node)[len(node.prefix) + lq:-lq]
         translation = self.context.get(original)
-        if not translation:
+        if not translation or translation is True:
             return updated_node
-        return cst.parse_expression(f'{pref}"{translation}"')
+        return cst.parse_expression(f'{node.prefix}{node.quote}{translation}{node.quote}')
 
     visit_ClassDef = push_context
     visit_FunctionDef = push_context
@@ -128,28 +130,29 @@ class StringTranslator(cst.CSTTransformer):
             self,
             node: cst.FormattedStringExpression,
             updated_node: cst.FormattedStringExpression) -> cst.CSTNode:
-        return self.__translate(node, updated_node, "f")
+        return self.__translate(node, updated_node)
 
     def leave_SimpleString(
             self,
             node: cst.SimpleString,
             updated_node: cst.SimpleString) -> cst.CSTNode:
-        return self.__translate(node, updated_node, "")
+        return self.__translate(node, updated_node)
 
 
-def walk_files(pattern: str) -> Iterator[Tuple[str, str, str]]:
-    for root, _, files in os.walk(root_dir):
+def walk_files(source: str, pattern: str) -> Iterator[Tuple[str, str, str]]:
+    for root, _, files in os.walk(os.path.join(source, root_dir)):
+        dry_root = root[len(source) + 1:]
         for name in files:
             fullname = os.path.join(root, name)
             if pattern in fullname \
                     and fullname[-3:] == ".py" \
                     and not name.startswith("test_"):
-                yield root, name, fullname
+                yield root, os.path.join(dry_root, name), fullname
 
 
-def collect(pattern: str) -> MsgDict:
+def collect(source: str, pattern: str) -> MsgDict:
     collector = StringCollector()
-    for *_, fullname in walk_files(pattern):
+    for *_, fullname in walk_files(source, pattern):
         print(f"Parsing {fullname}")
         with open(fullname) as f:
             tree = cst.metadata.MetadataWrapper(cst.parse_module(f.read()))
@@ -158,18 +161,20 @@ def collect(pattern: str) -> MsgDict:
     return collector.contexts[0]
 
 
-def translate(translations: MsgDict, destination: str, pattern: str) -> None:
-    for root, name, fullname in walk_files(pattern):
-        if not any_translations(translations.get(fullname, {})):
+def translate(translations: MsgDict, source: Optional[str], destination: Optional[str], pattern: str) -> None:
+    source = source or "."
+    destination = destination or "."
+    for root, name, fullname in walk_files(source, pattern):
+        if not any_translations(translations.get(name, {})):
             continue
         with open(fullname) as f:
             orig_source = f.read()
             tree = cst.parse_module(orig_source)
-        translator = StringTranslator(translations[fullname], tree)
+        translator = StringTranslator(translations[name], tree)
         translated = tree.visit(translator)
         trans_source = tree.code_for_node(translated)
         if orig_source != trans_source:
-            transname = os.path.join(destination, root, name)
+            transname = os.path.join(destination, name)
             print(f"Writing {transname}")
             with open(transname, "wt") as f:
                 f.write(trans_source)
