@@ -78,15 +78,13 @@ If we would like to write to a different file instead of overwriting the existin
 
 `trubar translate` writes new source files in which strings are replaced by their translations.
 
-For this we need to copy the entire directory with sources. If directories under ./Orange/widgets are copied to ./si/Orange/widgets,
+For this we need to copy the entire directory with sources. If directories under /somewhere/Orange/widgets are copied to /elsewhere/Orange/widgets,
 
 ```sh
-trubar translate translations.yaml -d si
+trubar translate translations.yaml -s /somewhere -d /elsewhere
 ```
 
-will modify all files in si/Orange/widgets.
-
-This expects that the files currently contain the original (English) messages. If they don't, they will be left intact. In other words: this will not update any existing translations.
+will write translation to files in /somewhere/Orange/widgets. If destination already exists it will be overwritten without warning.
 
 #### When source messages change ...
 
@@ -110,11 +108,12 @@ Translations are a stored in hierarchical form. The top-most layer are file path
 
 The translation can be one of the following:
 
-- `null`: the message has no translation
-- `false`: the message must not be (or will not) be translated, typically because they are string literals, names of types, fields in named tuples and similar.
+- `null`: the message has not been translated (yet?). This is default, and must be change by translator to one of the below alternatives.
+- `false`: the message must not be (or will not) be translated, typically because they are string literals, names of types, fields in named tuples and similar;
+- `true`: the message is a text seen by the user, but needs no translation for this particular language;
 - a string with translation.
 
-The translator's task is to replace `null`'s with `false`'s or translations.
+The translator's task is to replace `null`'s with `false`'s, `true`'s or translations.
 
 The effect of changing `null` to `false` is that `trubar missing` will treat the message as done, e.g. it will not appear as missing translation.
 
@@ -130,7 +129,7 @@ YAML however adds quotes if the messages contains certain characters or ends wit
 
 The file with translations does not (and cannot indicate without a lot of additional clutter) whether the string is an f-string or not. This can be deduced by the presence of `{...}` within the string ... or checked in the code.
 
-Translator cannot replace an ordinary string with an f-string, because (s)he touches only what is between the quotes.
+Translator cannot replace an ordinary string with an f-string, because (s)he touches only what is between the quotes. If, however, translator decides to exclude data that is interpolated, (s)he may do so by simply omitting the parts between braces; this is still a valid (though pointless) f-string.
 
 #### Plural forms
 
