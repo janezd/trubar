@@ -14,7 +14,7 @@ root_dir = ""
 
 MsgDict = Dict[str, Union["MsgDict", str]]
 NamespaceNode = Union[cst.Module, cst.FunctionDef, cst.ClassDef]
-
+SomeString = Union[cst.SimpleString, cst.FormattedString]
 
 @dataclass
 class State:
@@ -76,12 +76,14 @@ class StringCollector(cst.CSTVisitor):
     def visit_FormattedString(
             self,
             node: cst.FormattedStringExpression) -> None:
+        lq = len(node.quote)
         if not self.blacklisted(node):
-            self.contexts[-1][self.module.code_for_node(node)[2:-1]] = None
+            self.contexts[-1][self.module.code_for_node(node)[len(node.prefix) + lq:-lq]] = None
         return False
 
     def visit_SimpleString(self, node: cst.SimpleString) -> None:
-        s = self.module.code_for_node(node)[1:-1]
+        lq = len(node.quote)
+        s = self.module.code_for_node(node)[len(node.prefix) + lq:-lq]
         if s and not self.blacklisted(node):
             self.contexts[-1][s] = None
 
@@ -108,15 +110,15 @@ class StringTranslator(cst.CSTTransformer):
 
     def __translate(
             self,
-            node: cst.CSTNode, updated_node: cst.CSTNode,
-            pref: str) -> cst.CSTNode:
+            node: SomeString, updated_node: SomeString) -> SomeString:
         if not self.context:
             return updated_node
-        original = self.module.code_for_node(node)[1 + len(pref):-1]
+        lq = len(node.quote)
+        original = self.module.code_for_node(node)[len(node.prefix) + lq:-lq]
         translation = self.context.get(original)
         if not translation or translation is True:
             return updated_node
-        return cst.parse_expression(f'{pref}"{translation}"')
+        return cst.parse_expression(f'{node.prefix}{node.quote}{translation}{node.quote}')
 
     visit_ClassDef = push_context
     visit_FunctionDef = push_context
@@ -128,13 +130,13 @@ class StringTranslator(cst.CSTTransformer):
             self,
             node: cst.FormattedStringExpression,
             updated_node: cst.FormattedStringExpression) -> cst.CSTNode:
-        return self.__translate(node, updated_node, "f")
+        return self.__translate(node, updated_node)
 
     def leave_SimpleString(
             self,
             node: cst.SimpleString,
             updated_node: cst.SimpleString) -> cst.CSTNode:
-        return self.__translate(node, updated_node, "")
+        return self.__translate(node, updated_node)
 
 
 def walk_files(source: str, pattern: str) -> Iterator[Tuple[str, str, str]]:
