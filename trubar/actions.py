@@ -114,7 +114,7 @@ class StringTranslator(cst.CSTTransformer):
             return updated_node
         original = self.module.code_for_node(node)[1 + len(pref):-1]
         translation = self.context.get(original)
-        if not translation:
+        if not translation or translation is True:
             return updated_node
         return cst.parse_expression(f'{pref}"{translation}"')
 
