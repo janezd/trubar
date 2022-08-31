@@ -137,19 +137,20 @@ class StringTranslator(cst.CSTTransformer):
         return self.__translate(node, updated_node, "")
 
 
-def walk_files(pattern: str) -> Iterator[Tuple[str, str, str]]:
-    for root, _, files in os.walk(root_dir):
+def walk_files(source: str, pattern: str) -> Iterator[Tuple[str, str, str]]:
+    for root, _, files in os.walk(os.path.join(source, root_dir)):
+        dry_root = root[len(source) + 1:]
         for name in files:
             fullname = os.path.join(root, name)
             if pattern in fullname \
                     and fullname[-3:] == ".py" \
                     and not name.startswith("test_"):
-                yield root, name, fullname
+                yield root, os.path.join(dry_root, name), fullname
 
 
-def collect(pattern: str) -> MsgDict:
+def collect(source: str, pattern: str) -> MsgDict:
     collector = StringCollector()
-    for *_, fullname in walk_files(pattern):
+    for *_, fullname in walk_files(source, pattern):
         print(f"Parsing {fullname}")
         with open(fullname) as f:
             tree = cst.metadata.MetadataWrapper(cst.parse_module(f.read()))
@@ -158,18 +159,20 @@ def collect(pattern: str) -> MsgDict:
     return collector.contexts[0]
 
 
-def translate(translations: MsgDict, destination: str, pattern: str) -> None:
-    for root, name, fullname in walk_files(pattern):
-        if not any_translations(translations.get(fullname, {})):
+def translate(translations: MsgDict, source: Optional[str], destination: Optional[str], pattern: str) -> None:
+    source = source or "."
+    destination = destination or "."
+    for root, name, fullname in walk_files(source, pattern):
+        if not any_translations(translations.get(name, {})):
             continue
         with open(fullname) as f:
             orig_source = f.read()
             tree = cst.parse_module(orig_source)
-        translator = StringTranslator(translations[fullname], tree)
+        translator = StringTranslator(translations[name], tree)
         translated = tree.visit(translator)
         trans_source = tree.code_for_node(translated)
         if orig_source != trans_source:
-            transname = os.path.join(destination, root, name)
+            transname = os.path.join(destination, name)
             print(f"Writing {transname}")
             with open(transname, "wt") as f:
                 f.write(trans_source)
