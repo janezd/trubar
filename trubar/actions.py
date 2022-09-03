@@ -54,12 +54,15 @@ class StringCollector(cst.CSTVisitor):
             # a string!
             self.contexts[-1][state.name or state.node.name.value] = context
 
-    def blacklisted(self, node: cst.CSTNode) -> bool:
-        ssl = self.get_metadata(ParentNodeProvider, node)
-        return (isinstance(ssl, cst.SimpleStatementLine)
-                and len(ssl.body) == 1
-                and self.get_metadata(ParentNodeProvider, ssl)
-                is self.function_stack[-1])
+    def is_useless_string(self, node: cst.CSTNode) -> bool:
+        # This is primarily to exclude docstrings: exclude strings if they
+        # represent the entire body of a simple statement.
+        # It will not exclude, e.g. line `"a" + "b"`.
+        parent = self.get_metadata(ParentNodeProvider, node)
+        grand = self.get_metadata(ParentNodeProvider, parent)
+        return isinstance(parent, cst.Expr) \
+            and isinstance(grand, cst.SimpleStatementLine) \
+            and len(grand.body) == 1
 
     def visit_ClassDef(self, node: cst.ClassDef) -> None:
         self.push_context(node)
@@ -77,14 +80,14 @@ class StringCollector(cst.CSTVisitor):
             self,
             node: cst.FormattedStringExpression) -> None:
         lq = len(node.quote)
-        if not self.blacklisted(node):
+        if not self.is_useless_string(node):
             self.contexts[-1][self.module.code_for_node(node)[len(node.prefix) + lq:-lq]] = None
         return False
 
     def visit_SimpleString(self, node: cst.SimpleString) -> None:
         lq = len(node.quote)
         s = self.module.code_for_node(node)[len(node.prefix) + lq:-lq]
-        if s and not self.blacklisted(node):
+        if s and not self.is_useless_string(node):
             self.contexts[-1][s] = None
 
 
