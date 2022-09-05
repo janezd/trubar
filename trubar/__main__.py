@@ -8,9 +8,6 @@ def main() -> None:
     def add_parser(name, desc):
         subparser = subparsers.add_parser(name, help=desc, description=desc)
         subparser.add_argument(
-            "-r", "--root", metavar="root-directory", default="Orange/widgets",
-            help="root directory; default='Orange/widgets'")
-        subparser.add_argument(
             "-p", "--pattern", default="", metavar="pattern",
             help="include only files whose full path include the pattern")
         return subparser
@@ -20,8 +17,7 @@ def main() -> None:
 
     parser = add_parser("collect", "Collect message strings in source files")
     parser.add_argument(
-        "-s", "--source", metavar="source-dir", default=".",
-        help="source path; root dir will be appended to this path")
+        "-s", "--source", metavar="source-dir", default=".", help="source path")
     parser.add_argument(
         "-o", "--output", required=True, metavar="output-file",
         help="output file")
@@ -31,11 +27,9 @@ def main() -> None:
         "translations", metavar="translations",
         help="file with translated messages")
     parser.add_argument(
-        "-d", "--dest", metavar="destination-dir",
-        help="destination path; root dir will be appended to this path")
+        "-d", "--dest", metavar="destination-dir", help="destination path")
     parser.add_argument(
-        "-s", "--source", metavar="source-dir",
-        help="source path; root dir will be appended to this path")
+        "-s", "--source", metavar="source-dir", help="source path")
 
     parser = add_parser("update", "Update existing translations with new ones")
     parser.add_argument(
@@ -62,7 +56,6 @@ def main() -> None:
 
     args = argparser.parse_args(sys.argv[1:])
 
-    set_root_dir(args.root)
     pattern = args.pattern
 
     if args.action == "collect":

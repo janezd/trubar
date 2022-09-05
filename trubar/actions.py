@@ -8,9 +8,7 @@ import libcst as cst
 from libcst.metadata import ParentNodeProvider
 
 __all__ = ["collect", "translate", "update", "missing", "load", "dump",
-           "set_root_dir", "any_translations"]
-
-root_dir = ""
+           "any_translations"]
 
 MsgDict = Dict[str, Union["MsgDict", str]]
 NamespaceNode = Union[cst.Module, cst.FunctionDef, cst.ClassDef]
@@ -142,24 +140,23 @@ class StringTranslator(cst.CSTTransformer):
         return self.__translate(node, updated_node)
 
 
-def walk_files(source: str, pattern: str) -> Iterator[Tuple[str, str, str]]:
-    for root, _, files in os.walk(os.path.join(source, root_dir)):
-        dry_root = root[len(source) + 1:]
+def walk_files(path: str, pattern: str) -> Iterator[Tuple[str, str, str]]:
+    for dirpath, _, files in os.walk(path):
         for name in files:
-            fullname = os.path.join(root, name)
-            if pattern in fullname \
-                    and fullname[-3:] == ".py" \
+            name = os.path.join(dirpath, name)
+            if pattern in name \
+                    and name.endswith(".py") \
                     and not name.startswith("test_"):
-                yield root, os.path.join(dry_root, name), fullname
+                yield name[len(path) + 1:], name
 
 
 def collect(source: str, pattern: str) -> MsgDict:
     collector = StringCollector()
-    for *_, fullname in walk_files(source, pattern):
-        print(f"Parsing {fullname}")
+    for name, fullname in walk_files(source, pattern):
+        print(f"Parsing {name}")
         with open(fullname) as f:
             tree = cst.metadata.MetadataWrapper(cst.parse_module(f.read()))
-            collector.open_module(fullname)
+            collector.open_module(name)
             tree.visit(collector)
     return collector.contexts[0]
 
@@ -167,20 +164,19 @@ def collect(source: str, pattern: str) -> MsgDict:
 def translate(translations: MsgDict, source: Optional[str], destination: Optional[str], pattern: str) -> None:
     source = source or "."
     destination = destination or "."
-    for root, name, fullname in walk_files(source, pattern):
+    for name, fullname in walk_files(source, pattern):
         if not any_translations(translations.get(name, {})):
-            continue
+            print(f"{name}: no translations")
         with open(fullname) as f:
             orig_source = f.read()
             tree = cst.parse_module(orig_source)
         translator = StringTranslator(translations[name], tree)
         translated = tree.visit(translator)
         trans_source = tree.code_for_node(translated)
-        if orig_source != trans_source:
-            transname = os.path.join(destination, name)
-            print(f"Writing {transname}")
-            with open(transname, "wt") as f:
-                f.write(trans_source)
+        print(f"Writing {name}")
+        transname = os.path.join(destination, name)
+        with open(transname, "wt") as f:
+            f.write(trans_source)
 
 
 def missing(translations: MsgDict, messages: MsgDict, pattern: str) -> MsgDict:
@@ -230,7 +226,3 @@ def any_translations(context):
     return any(any_translations(obj) if isinstance(obj, dict) else obj
                for obj in context.values())
 
-
-def set_root_dir(dir: str):
-    global root_dir
-    root_dir = dir
