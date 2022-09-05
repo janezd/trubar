@@ -12,12 +12,6 @@ Trubar is pip-installable:
 pip install trubar`
 ```
 
-#### Orange-related peculiarities
-
-The tool was developed for Orange. The number of Orange-related things is small (perhaps just a root directory, as described below and which can be changed with an option, and this documentation?) and will be removed in the future if we consider the tool could be useful for other projects as well.
-
-The tool is expected to be run in Orange's root and will look for Python sources in directory Orange/widgets. Another root can be specified by adding option `-r` (`--root`). This "feature" will be removed at some later point.
-
 ### Why working on the source level?
 
 Python's f-strings cannot be translated using gettext or similar tools, because they translate a pattern, while f-strings are born interpolated, that is, with expressions already computed.
@@ -76,15 +70,13 @@ If we would like to write to a different file instead of overwriting the existin
 
 #### Translating sources
 
-`trubar translate` writes new source files in which strings are replaced by their translations.
-
-For this we need to copy the entire directory with sources. If directories under /somewhere/Orange/widgets are copied to /elsewhere/Orange/widgets,
+`trubar translate` writes a new tree of source files in which strings are replaced by their translations.
 
 ```sh
-trubar translate translations.yaml -s /somewhere -d /elsewhere
+trubar translate translations.yaml -s soursepath -d destinationpath
 ```
 
-will write translation to files in /somewhere/Orange/widgets. If destination already exists it will be overwritten without warning.
+If destination already exists it will be overwritten without warning, but any other existing files in destination will not be removed.
 
 #### When source messages change ...
 
@@ -133,12 +125,12 @@ Translator cannot replace an ordinary string with an f-string, because (s)he tou
 
 #### Plural forms
 
-This is unrelated to `trubar` and can be handled differently in other projects. The way we do it in Orange is as follows.
+Trubar does not care. You can use f-strings, so it's up to you. There is however a cute way of doing it.
 
 The source file must import the localization functions, e.g.
 
 ```python
-from Orange.widgets.utils.localization import *
+from utils.localization import *
 ```
 
 It is crucial to import all functions from the file. The file contains the following function
@@ -184,7 +176,7 @@ Future versions of `trubar` may improve in this respect.
 
 ### Known quirks
 
-Trubar assumes that no string is the same as a function within the same namespace. This would cause problems.
+Trubar currently assumes that no string is the same as a function within the same namespace. This would cause problems.
 
 ```python
 s = "foo"
