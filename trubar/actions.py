@@ -27,6 +27,8 @@ class StringCollector(cst.CSTVisitor):
         super().__init__()
         self.module: Optional[cst.Module] = None
         self.module_name: Optional[str] = None
+        # The stack of nodes (module, class, function) corresponding to
+        # the element of stack of contexts
         self.function_stack: List[State] = []
         self.contexts: List[MsgDict] = [{}]
 
@@ -80,7 +82,7 @@ class StringCollector(cst.CSTVisitor):
         lq = len(node.quote)
         if not self.is_useless_string(node):
             self.contexts[-1][self.module.code_for_node(node)[len(node.prefix) + lq:-lq]] = None
-        return False
+        return False  # don't visit anything within an f-string!
 
     def visit_SimpleString(self, node: cst.SimpleString) -> None:
         lq = len(node.quote)
