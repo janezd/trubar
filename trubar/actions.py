@@ -223,6 +223,7 @@ def dump(messages: MsgDict, filename: str) -> None:
 
 
 def any_translations(context):
-    return any(any_translations(obj) if isinstance(obj, dict) else obj
+    return any(any_translations(obj) if isinstance(obj, dict)
+               else isinstance(obj, str)
                for obj in context.values())
 
