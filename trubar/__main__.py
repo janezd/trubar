@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from trubar.actions import *
+from trubar.actions import load, dump, collect, translate, update, missing
 
 
 def main() -> None:
@@ -73,8 +73,8 @@ def main() -> None:
     elif args.action == "update":
         additional = load(args.new_translations)
         existing = load(args.pot)
-        messages = update(existing, additional, pattern)
-        dump(messages, args.output or args.pot)
+        update(existing, additional, pattern)
+        dump(existing, args.output or args.pot)
 
     elif args.action == "missing":
         translations = load(args.translations)
