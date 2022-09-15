@@ -8,7 +8,7 @@ import yaml
 import libcst as cst
 from libcst.metadata import ParentNodeProvider
 
-__all__ = ["collect", "translate", "update", "missing", "template",
+__all__ = ["collect", "translate", "update", "missing", "template", "sync",
            "load", "dump",
            "any_translations"]
 
@@ -236,17 +236,59 @@ def update(existing: MsgDict, additional: MsgDict, pattern: str = "") -> None:
             existing[msg] = trans
 
 
-def template(existing: MsgDict, pattern: str = "") -> MsgDict:
+def template(existing: MsgDict, pattern: str = "",
+             *, keep_false=False) -> MsgDict:
     new_template = {}
     for msg, trans in existing.items():
         if pattern not in msg:
             continue
         if isinstance(trans, dict):
-            if subtemplate := template(existing[msg]):
+            if subtemplate := template(existing[msg], keep_false=keep_false):
                 new_template[msg] = subtemplate
         elif trans is not False:
-            new_template[msg] = trans
+            new_template[msg] = None
+        elif keep_false:
+            new_template[msg] = False
     return new_template
+
+
+def sync(translations: MsgDict, messages: MsgDict,
+         pattern: Optional[str] = None) -> MsgDict:
+    new_messages = {}
+    removed = {}
+    for msg, trans in translations.items():
+        if pattern and pattern not in msg:
+            # not in pattern: leave as is
+            new_messages[msg] = trans
+        elif msg not in messages:
+            # removed: remove
+            removed[msg] = trans
+        elif isinstance(trans, dict):
+            if isinstance(messages[msg], str):
+                removed[msg] = trans
+                new_messages[msg] = None
+            else:
+                # dict: recursively create dicts, add if non-empty
+                sub_new, sub_rem = sync(trans, messages[msg])
+                if sub_new:
+                    new_messages[msg] = sub_new
+                if sub_rem:
+                    removed[msg] = sub_rem
+        elif isinstance(messages[msg], dict):
+                removed[msg] = trans
+                new_messages[msg] = template(messages[msg], keep_false=True)
+        else:
+            # leave as is
+            new_messages[msg] = trans
+    for msg in set(messages) - set(translations):
+        trans = messages[msg]
+        if isinstance(trans, dict):
+            new_messages[msg] = template(trans, keep_false=True)
+        elif trans is False:
+            new_messages[msg] = False
+        else:
+            new_messages[msg] = None
+    return new_messages, removed
 
 
 def load(filename: str) -> MsgDict:

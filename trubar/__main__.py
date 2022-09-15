@@ -2,8 +2,8 @@ import argparse
 import sys
 
 from trubar.actions import \
-    load, dump,\
-    collect, translate, update, missing, template
+    load, dump, \
+    collect, translate, update, missing, template, sync
 
 
 def main() -> None:
@@ -51,6 +51,21 @@ def main() -> None:
         "-o", "--output", metavar="output-file",
         help="output file; if omitted, existing file will updated")
 
+    parser = add_parser("clean",
+                        "Update file with translations to match new messages")
+    parser.add_argument(
+        "translations", metavar="translations",
+        help="existing file with translations")
+    parser.add_argument(
+        "messages", metavar="messages",
+        help="up-to-date messages")
+    parser.add_argument(
+        "-o", "--output", metavar="output-file",
+        help="output file; if omitted, existing file is cleaned in place")
+    parser.add_argument(
+        "-r", "--removed", metavar="removed-file", default=None,
+        help="file for removed translations")
+
     parser = add_parser("template",
                         "Create empty template from existing translations")
     parser.add_argument(
@@ -92,6 +107,14 @@ def main() -> None:
         existing = load(args.pot)
         update(existing, additional, pattern)
         dump(existing, args.output or args.pot)
+
+    elif args.action == "clean":
+        translations = load(args.translations)
+        messages = load(args.messages)
+        new_messages, removed = sync(translations, messages, pattern)
+        dump(new_messages, args.output or args.translations)
+        if args.removed:
+            dump(removed, args.removed)
 
     elif args.action == "template":
         existing = load(args.translations)

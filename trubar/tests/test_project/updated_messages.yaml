@@ -1,0 +1,17 @@
+__init__.py:
+    A:
+        A class attribute: false
+        f:
+            some/directory: true
+            File {x}: Datoteka {x}
+            Not a real file {x + ".bak"}: null
+    __main__: false
+    Please don't run this.: null
+    Import it, if you must.: null
+    But rather - don't: null
+submodule/apples.py:
+    Oranges:
+        Orange: null
+        Red: null
+trash/nothing.py:
+    f: null
