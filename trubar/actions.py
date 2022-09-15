@@ -159,12 +159,13 @@ class StringTranslator(cst.CSTTransformer):
 
 
 def walk_files(path: str, pattern: str = "") -> Iterator[Tuple[str, str]]:
-    for dirpath, _, files in os.walk(path):
-        for name in files:
+    for dirpath, _, files in sorted(os.walk(path)):
+        for name in sorted(files):
+            if name.startswith("test_") \
+                    or not name.endswith(".py"):
+                continue
             name = os.path.join(dirpath, name)
-            if pattern in name \
-                    and name.endswith(".py") \
-                    and not name.startswith("test_"):
+            if pattern in name:
                 yield name[len(path) + 1:], name
 
 
@@ -199,6 +200,8 @@ def translate(translations: MsgDict,
         if not quiet:
             print(f"Writing {name}")
         transname = os.path.join(destination, name)
+        path, _ = os.path.split(transname)
+        os.makedirs(path, exist_ok=True)
         with open(transname, "wt", encoding=__encoding) as f:
             f.write(trans_source)
 
