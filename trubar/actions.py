@@ -8,7 +8,8 @@ import yaml
 import libcst as cst
 from libcst.metadata import ParentNodeProvider
 
-__all__ = ["collect", "translate", "update", "missing", "load", "dump",
+__all__ = ["collect", "translate", "update", "missing", "template",
+           "load", "dump",
            "any_translations"]
 
 MsgDict = Dict[str, Union["MsgDict", str]]
@@ -233,6 +234,19 @@ def update(existing: MsgDict, additional: MsgDict, pattern: str = "") -> None:
             update(existing[msg], trans, "")
         elif trans is not None:
             existing[msg] = trans
+
+
+def template(existing: MsgDict, pattern: str = "") -> MsgDict:
+    new_template = {}
+    for msg, trans in existing.items():
+        if pattern not in msg:
+            continue
+        if isinstance(trans, dict):
+            if subtemplate := template(existing[msg]):
+                new_template[msg] = subtemplate
+        elif trans is not False:
+            new_template[msg] = trans
+    return new_template
 
 
 def load(filename: str) -> MsgDict:

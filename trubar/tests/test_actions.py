@@ -5,7 +5,7 @@ import libcst as cst
 
 from trubar.actions import \
     StringCollector, StringTranslator, walk_files, \
-    collect, missing, update
+    collect, missing, update, template
 
 import trubar.tests.test_module
 
@@ -312,6 +312,26 @@ class ActionsTest(unittest.TestCase):
              "t": {"u": "v"}
             }
         )
+
+    def test_template(self):
+        messages = {
+            "a": "b",
+            "c": False,
+            "d": True,
+            "e": None,
+            "f": { "g": "h", "i": False},
+            "j": { "k": False, "l": {"m": False, "n": False}}
+        }
+        self.assertEqual(
+            template(messages),
+           {"a": "b",
+            "d": True,
+            "e": None,
+            "f": { "g": "h"}
+        }
+        )
+        self.assertEqual(template(messages, "f"), {"f": { "g": "h"}})
+        self.assertEqual(template(messages, "g"), {})
 
 
 if __name__ == "__main__":
