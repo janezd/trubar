@@ -1,0 +1,10 @@
+__init__.py:
+    A:
+        f:
+            default: "privzeto"
+            some/directory: false
+            File {x}: Datoteka {x}
+            Not file {x + ".bak"}: Ne pa datoteka {x + ".bak"}
+            '{"nonsense"}': null
+submodule/apples.py:
+    Oranges: Pomaranči
