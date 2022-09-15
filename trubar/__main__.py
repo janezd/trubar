@@ -1,7 +1,9 @@
 import argparse
 import sys
 
-from trubar.actions import load, dump, collect, translate, update, missing
+from trubar.actions import \
+    load, dump,\
+    collect, translate, update, missing, template
 
 
 def main() -> None:
@@ -49,6 +51,15 @@ def main() -> None:
         "-o", "--output", metavar="output-file",
         help="output file; if omitted, existing file will updated")
 
+    parser = add_parser("template",
+                        "Create empty template from existing translations")
+    parser.add_argument(
+        "translations", metavar="translations",
+        help="existing translations for another language")
+    parser.add_argument(
+        "-o", "--output", metavar="output-file", required=True,
+        help="output file")
+
     parser = add_parser("missing", "Prepare a file with missing translations")
     parser.add_argument(
         "translations", metavar="translations",
@@ -81,6 +92,11 @@ def main() -> None:
         existing = load(args.pot)
         update(existing, additional, pattern)
         dump(existing, args.output or args.pot)
+
+    elif args.action == "template":
+        existing = load(args.translations)
+        new = template(existing, pattern)
+        dump(new, args.output)
 
     elif args.action == "missing":
         translations = load(args.translations)

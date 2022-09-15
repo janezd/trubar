@@ -9,7 +9,7 @@ cd trubar/tests
 set -e
 echo "Collection"
 print_run 'trubar collect -s test_project -o messages.yaml -q'
-diff --strip-trailing-cr messages.yaml test_project/all_messages.yaml
+diff messages.yaml test_project/all_messages.yaml
 if [ -n "`trubar collect -s test_project -o messages.yaml -q`" ]
 then
   echo "Not quiet."
@@ -81,6 +81,11 @@ echo "Extract missing translations (given all messages and pattern)"
 print_run 'trubar missing test_project/translations.yaml  -m test_project/all_messages.yaml -o missing.yaml -p trash'
 diff missing.yaml test_project/missing_trash.yaml
 rm missing.yaml
+
+echo "Create template from existing translations"
+print_run 'trubar template test_project/translations_for_template.yaml -o template.yaml'
+diff template.yaml test_project/template.yaml
+rm template.yaml
 
 echo "Done."
 )
