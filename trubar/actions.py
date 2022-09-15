@@ -168,10 +168,10 @@ def walk_files(path: str, pattern: str = "") -> Iterator[Tuple[str, str]]:
                 yield name[len(path) + 1:], name
 
 
-def collect(source: str, pattern: str, *, verbose=True) -> MsgDict:
+def collect(source: str, pattern: str, *, quiet=False) -> MsgDict:
     collector = StringCollector()
     for name, fullname in walk_files(source, pattern):
-        if verbose:
+        if not quiet:
             print(f"Parsing {name}")
         with open(fullname, encoding=__encoding) as f:
             tree = cst.metadata.MetadataWrapper(cst.parse_module(f.read()))
@@ -182,11 +182,13 @@ def collect(source: str, pattern: str, *, verbose=True) -> MsgDict:
 
 def translate(translations: MsgDict,
               source: Optional[str],
-              destination: Optional[str], pattern: str) -> None:
+              destination: Optional[str],
+              pattern: str,
+              *, quiet=False) -> None:
     source = source or "."
     destination = destination or "."
     for name, fullname in walk_files(source, pattern):
-        if not any_translations(translations.get(name, {})):
+        if not quiet and not any_translations(translations.get(name, {})):
             print(f"{name}: no translations")
         with open(fullname, encoding=__encoding) as f:
             orig_source = f.read()
@@ -194,7 +196,8 @@ def translate(translations: MsgDict,
         translator = StringTranslator(translations[name], tree)
         translated = tree.visit(translator)
         trans_source = tree.code_for_node(translated)
-        print(f"Writing {name}")
+        if not quiet:
+            print(f"Writing {name}")
         transname = os.path.join(destination, name)
         with open(transname, "wt", encoding=__encoding) as f:
             f.write(trans_source)

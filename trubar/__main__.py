@@ -21,6 +21,9 @@ def main() -> None:
     parser.add_argument(
         "-o", "--output", required=True, metavar="output-file",
         help="output file")
+    parser.add_argument(
+        "-q", "--quiet", action="store_true",
+        help="supress intermediary outputs")
 
     parser = add_parser("translate", "Prepare sources with translations")
     parser.add_argument(
@@ -30,6 +33,9 @@ def main() -> None:
         "-d", "--dest", metavar="destination-dir", help="destination path")
     parser.add_argument(
         "-s", "--source", metavar="source-dir", help="source path")
+    parser.add_argument(
+        "-q", "--quiet", action="store_true",
+        help="supress intermediary outputs")
 
     parser = add_parser("update", "Update existing translations with new ones")
     parser.add_argument(
@@ -59,7 +65,7 @@ def main() -> None:
     pattern = args.pattern
 
     if args.action == "collect":
-        messages = collect(args.source, pattern)
+        messages = collect(args.source, pattern, quiet=args.quiet)
         dump(messages, args.output)
 
     elif args.action == "translate":
@@ -68,7 +74,7 @@ def main() -> None:
         if args.source == args.dest:
             argparser.error("source and destination must not be the same")
         messages = load(args.translations)
-        translate(messages, args.source, args.dest, pattern)
+        translate(messages, args.source, args.dest, pattern, quiet=args.quiet)
 
     elif args.action == "update":
         additional = load(args.new_translations)

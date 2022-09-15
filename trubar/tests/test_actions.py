@@ -80,7 +80,7 @@ class C:
             "'baz': None, 'B': {'baz': None}}}, 'C': {'crux': None}}}")
 
     def test_module_and_walk_and_collect(self):
-        msgs = collect(test_module_path, "", verbose=False)
+        msgs = collect(test_module_path, "", quiet=True)
         self.assertEqual(
             msgs,
             {
