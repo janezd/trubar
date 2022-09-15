@@ -3,11 +3,18 @@ import unittest
 
 import libcst as cst
 
-from trubar.actions import StringCollector, collect
+from trubar.actions import \
+    StringCollector, StringTranslator, walk_files, \
+    collect, missing, update
+
+import trubar.tests.test_module
+
+test_module_path = os.path.split(trubar.tests.test_module.__file__)[0]
 
 
 class StringCollectorTest(unittest.TestCase):
-    def collect(self, s):
+    @staticmethod
+    def collect(s):
         collector = StringCollector()
         tree = cst.metadata.MetadataWrapper(cst.parse_module(s))
         collector.open_module("foo_module")
@@ -69,11 +76,11 @@ class C:
         # check structure and order, thus `repr`
         self.assertEqual(
             repr(msgs),
-            "{'foo_module': {'A': {'b': {'c': {'foo': None, 'bar': None}, 'baz': None, 'B': {'baz': None}}}, 'C': {'crux': None}}}")
+            "{'foo_module': {'A': {'b': {'c': {'foo': None, 'bar': None}, "
+            "'baz': None, 'B': {'baz': None}}}, 'C': {'crux': None}}}")
 
-    def test_module(self):
-        import trubar.tests.test_module
-        msgs = collect(os.path.split(trubar.tests.test_module.__file__)[0], "")
+    def test_module_and_walk_and_collect(self):
+        msgs = collect(test_module_path, "", verbose=False)
         self.assertEqual(
             msgs,
             {
@@ -90,16 +97,221 @@ class C:
         )
 
     def test_no_docstrings(self):
-        import trubar.tests.test_module_2
-        msgs = collect(os.path.split(trubar.tests.test_module_2.__file__)[0], "")
+        msgs = self.collect('''
+"""docstring"""
+
+def f(x):
+    "docstring"
+    a = "not a docstring"
+
+def g(x):
+    """Also docstring"""
+    f("bar")
+    "useless string"''')
         self.assertEqual(
             msgs,
-            {'__init__.py': {'f': {'not a docstring': None}},
-             'submodule.py': {'f': {'not a docstring': None}}})
+            {'foo_module': {'f': {'not a docstring': None},
+                            'g': {'bar': None}}})
 
     def test_no_strings_within_interpolation(self):
         msgs = self.collect("""a = f'x = {len("foo")} {"bar"}'""")
+        self.assertEqual(
+            msgs,
+            {'foo_module': {'x = {len("foo")} {"bar"}': None}})
 
+
+class StringTranslatorTest(unittest.TestCase):
+    def test_translator(self):
+        module = """
+# A comment
+class A:
+    def b(x):  # Another comment
+        def c(x):
+              d = '''foo'''  # intentional bad indentation
+              e = "bar"
+        a = "baz"
+
+        class B:
+           f = f"baz{42}"
+
+
+class C:
+    g = 'crux'
+"""
+
+        translations = {'A': {'b': {'c': {'foo': 'sea food',
+                                          'bar': None},
+                                    'baz': True,
+                                    'B': {'baz{42}': False}}},
+                        'C': {'crux': ""}}
+
+        tree = cst.parse_module(module)
+        translator = StringTranslator(translations, tree)
+        translated = tree.visit(translator)
+        trans_source = tree.code_for_node(translated)
+        self.assertEqual(trans_source, """
+# A comment
+class A:
+    def b(x):  # Another comment
+        def c(x):
+              d = '''sea food'''  # intentional bad indentation
+              e = "bar"
+        a = "baz"
+
+        class B:
+           f = f"baz{42}"
+
+
+class C:
+    g = ''
+""")
+
+
+class UtilsTest(unittest.TestCase):
+    def test_walk_files(self):
+        tmp = test_module_path
+        self.assertEqual(
+            set(walk_files(tmp)),
+            {('bar_module/__init__.py',
+              f'{tmp}/bar_module/__init__.py'),
+             ('bar_module/foo_module/__init__.py',
+              f'{tmp}/bar_module/foo_module/__init__.py'),
+             ('baz_module/__init__.py',
+              f'{tmp}/baz_module/__init__.py'),
+             ('__init__.py',
+              f'{tmp}/__init__.py')}
+        )
+
+        old_path = os.getcwd()
+        try:
+            os.chdir(tmp)
+            self.assertEqual(
+                set(walk_files(".")),
+                {('bar_module/__init__.py',
+                  './bar_module/__init__.py'),
+                 ('bar_module/foo_module/__init__.py',
+                  './bar_module/foo_module/__init__.py'),
+                 ('baz_module/__init__.py',
+                  './baz_module/__init__.py'),
+                 ('__init__.py',
+                  './__init__.py')}
+            )
+            self.assertEqual(
+                set(walk_files(".", "bar")),
+                {('bar_module/__init__.py',
+                  './bar_module/__init__.py'),
+                 ('bar_module/foo_module/__init__.py',
+                  './bar_module/foo_module/__init__.py')}
+            )
+        finally:
+            os.chdir(old_path)
+
+
+class ActionsTest(unittest.TestCase):
+    # collect is already tested above
+    # translate: we test walk and StringTranslator; let us assume we call them
+    # correctly
+
+    def test_missing_structure(self):
+        translations = {
+            "a": "b",
+            "c": None,
+            "d": False,
+            "e": True,
+            "f": {"g": "h",
+                  "i": False,
+                  "j": None,
+                  "k": True},
+            "k": "l",
+            "m": {"n": "o"},
+            "p": {"q": "r"}
+        }
+        messages = {
+            "a": None,
+            "c": None,
+            "d": None,
+            "e": None,
+            "f": {"g": None,
+                  "i": None,
+                  "j": None,
+                  "k": None},
+            "k": {"p": None},
+            "m": None,
+            "p": {"q": None},
+            "s": None,
+            "t": {"u": None}
+        }
+        self.assertEqual(
+            missing(translations, messages),
+            {"c": None,
+             "f": {"j": None},
+             "k": {"p": None},
+             "m": None,
+             "s": None,
+             "t": {"u": None}
+             }
+        )
+
+    def test_missing_pattern(self):
+        # test that pattern is applied to first level only
+        messages = {
+            "foo_1": {"foo_2": "x", "a": {"b": "c"}},
+            "2_foo": {"a": {"b": "c"}},
+            "bar": {"foo_1": {"b": "c"}}
+        }
+        self.assertEqual(
+            missing({}, messages, "foo"),
+            {"foo_1": {"foo_2": "x", "a": {"b": "c"}},
+             "2_foo": {"a": {"b": "c"}}}
+        )
+
+    def test_update(self):
+        existing = {
+            "a": None,
+            "c": "not-none",
+            "d": "x",
+            "e": "y",
+            "f": {"g": "z",
+                  "i": None,
+                  "j": None,
+                  "k": None},
+            "k": {"p": None},
+            "m": None,
+            "p": {"q": None},
+            "s": None,
+            "t": {"u": "v"}
+        }
+        additional = {
+            "a": "b",
+            "c": None,
+            "d": False,
+            "e": True,
+            "f": {"g": "h",
+                  "i": False,
+                  "j": None,
+                  "k": True},
+            "k": "l",
+            "m": {"n": "o"},
+            "p": {"q": "r"}
+        }
+        update(existing, additional)
+        self.assertEqual(
+            existing,
+            {"a": "b",
+             "c": "not-none",
+             "d": False,
+             "e": True,
+             "f": {"g": "h",
+                   "i": False,
+                   "j": None,
+                   "k": True},
+             "k": "l",
+             "m": {"n": "o"},
+             "p": {"q": "r"},
+             "s": None,
+             "t": {"u": "v"}
+            }
+        )
 
 
 if __name__ == "__main__":

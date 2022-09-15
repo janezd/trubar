@@ -134,7 +134,7 @@ class StringTranslator(cst.CSTTransformer):
         lq = len(node.quote)
         original = self.module.code_for_node(node)[len(node.prefix) + lq:-lq]
         translation = self.context.get(original)
-        if not translation or translation is True:
+        if not isinstance(translation, str):
             return updated_node
         return cst.parse_expression(
             f'{node.prefix}{node.quote}{translation}{node.quote}')
@@ -168,7 +168,7 @@ def walk_files(path: str, pattern: str = "") -> Iterator[Tuple[str, str]]:
                 yield name[len(path) + 1:], name
 
 
-def collect(source: str, pattern: str, verbose=True) -> MsgDict:
+def collect(source: str, pattern: str, *, verbose=True) -> MsgDict:
     collector = StringCollector()
     for name, fullname in walk_files(source, pattern):
         if verbose:
@@ -200,29 +200,33 @@ def translate(translations: MsgDict,
             f.write(trans_source)
 
 
-def missing(translations: MsgDict, messages: MsgDict, pattern: str) -> MsgDict:
+def missing(translations: MsgDict,
+            messages: MsgDict,
+            pattern: str = "") -> MsgDict:
     no_translations = {}
     for obj, orig in messages.items():
         if pattern not in obj:
             continue
         trans = translations.get(obj)
         if trans is None or (isinstance(trans, dict) != isinstance(orig, dict)):
-            no_translations[obj] = orig
+            no_translations[obj] = orig  # orig may be `None` or a whole subdict
         elif isinstance(orig, dict):
             if submiss := missing(translations[obj], orig, ""):
                 no_translations[obj] = submiss
     return no_translations
 
 
-def update(existing: MsgDict, additional: MsgDict, pattern: str) -> MsgDict:
+def update(existing: MsgDict, additional: MsgDict, pattern: str = "") -> None:
     for msg, trans in additional.items():
         if pattern not in msg:
             continue
         if isinstance(trans, dict):
-            update(existing.setdefault(msg, {}), trans, "")
+            if not isinstance(existing.get(msg), dict):
+                # the key did not exist before, or it was not a dict
+                existing[msg] = {}
+            update(existing[msg], trans, "")
         elif trans is not None:
             existing[msg] = trans
-    return existing
 
 
 def load(filename: str) -> MsgDict:
