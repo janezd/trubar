@@ -87,6 +87,36 @@ print_run 'trubar template test_project/translations_for_template.yaml -o templa
 diff template.yaml test_project/template.yaml
 rm template.yaml
 
+echo "Clean"
+cp test_project/translations.yaml test_project/translations-copy.yaml
+print_run 'trubar clean test_project/translations.yaml test_project/new_messages.yaml -o translations.yaml'
+diff test_project/translations.yaml test_project/translations-copy.yaml
+diff translations.yaml test_project/updated_messages.yaml
+rm translations.yaml
+
+echo "Clean, and store removed"
+print_run 'trubar clean test_project/translations.yaml test_project/new_messages.yaml -o translations.yaml -r removed.yaml'
+diff test_project/translations.yaml test_project/translations-copy.yaml
+diff translations.yaml test_project/updated_messages.yaml
+diff removed.yaml test_project/removed.yaml
+rm translations.yaml
+
+echo "Clean in place, and store removed"
+print_run 'trubar clean test_project/translations.yaml test_project/new_messages.yaml -r removed.yaml'
+diff test_project/translations.yaml test_project/updated_messages.yaml
+diff removed.yaml test_project/removed.yaml
+cp test_project/translations-copy.yaml test_project/translations.yaml
+rm removed.yaml
+
+echo "Clean, and store removed, with pattern"
+print_run 'trubar clean test_project/translations.yaml test_project/new_messages.yaml -o translations.yaml -r removed.yaml -p apples'
+diff test_project/translations.yaml test_project/translations-copy.yaml
+diff translations.yaml test_project/updated_messages_pattern.yaml
+diff removed.yaml test_project/removed_pattern.yaml
+rm translations.yaml
+rm removed.yaml
+rm test_project/translations-copy.yaml
+
 echo "Done."
 )
 

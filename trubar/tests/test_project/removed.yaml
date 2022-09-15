@@ -1,0 +1,12 @@
+__init__.py:
+    A:
+        f:
+            default: false
+            Not file {x + ".bak"}: Ne datoteka {x + ".bak"}
+            '{"nonsense"}': '{"nesmisel"}'
+submodule/apples.py:
+    Oranges: Pomaranče
+trash/nothing.py:
+    f:
+        To see here: null
+        ', really.': null

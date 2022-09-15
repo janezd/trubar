@@ -1,8 +1,8 @@
 a:
-    b: c
-    e: true
+    b: null
+    e: null
     f: null
     g:
-        h: i
+        h: null
 q:
-    s: true
+    s: null

@@ -5,7 +5,7 @@ import libcst as cst
 
 from trubar.actions import \
     StringCollector, StringTranslator, walk_files, \
-    collect, missing, update, template
+    collect, missing, update, template, sync
 
 import trubar.tests.test_module
 
@@ -324,14 +324,53 @@ class ActionsTest(unittest.TestCase):
         }
         self.assertEqual(
             template(messages),
-           {"a": "b",
-            "d": True,
+           {"a": None,
+            "d": None,
             "e": None,
-            "f": { "g": "h"}
+            "f": { "g": None}
         }
         )
-        self.assertEqual(template(messages, "f"), {"f": { "g": "h"}})
+        self.assertEqual(
+            template(messages, keep_false=True),
+           {"a": None,
+            "c": False,
+            "d": None,
+            "e": None,
+            "f": { "g": None, "i": False},
+            "j": {"k": False, "l": {"m": False, "n": False}}
+            }
+        )
+        self.assertEqual(template(messages, "f"), {"f": { "g": None}})
         self.assertEqual(template(messages, "g"), {})
+
+    def test_sync(self):
+        messages = {
+            "a": "b",
+            "c": False,
+            "d": True,
+            "e": None,
+            "f": {"g": "h", "i": False},
+            "j": { "k": False, "l": {"m": False, "n": False}}
+        }
+        new_messages = {
+            "a": "c",
+            "c": None,
+            "e": {"b": "d"},
+            "f": {"g": "w"},
+            "j": "k",
+            "p": "q",
+            "r": {"s": False, "t": "x"}
+        }
+        new, removed = sync(messages, new_messages)
+        self.assertEqual(
+            new,
+            {"a": "b",
+             "c": False,
+             "e": {"b": None},
+             "f": {"g": "h"},
+             "j": None,
+             "p": None,
+             "r": {"s": False, "t": None}})
 
 
 if __name__ == "__main__":
