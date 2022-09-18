@@ -3,7 +3,7 @@ import sys
 
 from trubar.actions import \
     load, dump, \
-    collect, translate, update, missing, template, sync
+    collect, translate, merge, missing, template
 
 
 def main() -> None:
@@ -38,8 +38,14 @@ def main() -> None:
     parser.add_argument(
         "-q", "--quiet", action="store_true",
         help="supress intermediary outputs")
+    parser.add_argument(
+        "-n", "--dry-run", action="store_true",
+        help="don't write anything; perform a trial run to check the structure"
+    )
 
-    parser = add_parser("update", "Update existing translations with new ones")
+    parser = add_parser("merge",
+                        "Merge translations into template or existing "
+                        "translations")
     parser.add_argument(
         "new_translations", metavar="new",
         help="new or updated translations")
@@ -50,21 +56,13 @@ def main() -> None:
     parser.add_argument(
         "-o", "--output", metavar="output-file",
         help="output file; if omitted, existing file will updated")
-
-    parser = add_parser("clean",
-                        "Update file with translations to match new messages")
     parser.add_argument(
-        "translations", metavar="translations",
-        help="existing file with translations")
+        "-r", "--rejected", metavar="rejected-file", default=None,
+        help="file for rejected translations")
     parser.add_argument(
-        "messages", metavar="messages",
-        help="up-to-date messages")
-    parser.add_argument(
-        "-o", "--output", metavar="output-file",
-        help="output file; if omitted, existing file is cleaned in place")
-    parser.add_argument(
-        "-r", "--removed", metavar="removed-file", default=None,
-        help="file for removed translations")
+        "-n", "--dry-run", action="store_true",
+        help="don't change translations file, just check the structure"
+    )
 
     parser = add_parser("template",
                         "Create empty template from existing translations")
@@ -100,21 +98,17 @@ def main() -> None:
         if args.source == args.dest:
             argparser.error("source and destination must not be the same")
         messages = load(args.translations)
-        translate(messages, args.source, args.dest, pattern, quiet=args.quiet)
+        translate(messages, args.source, args.dest, pattern,
+                  quiet=args.quiet, dry_run=args.dry_run)
 
-    elif args.action == "update":
+    elif args.action == "merge":
         additional = load(args.new_translations)
         existing = load(args.pot)
-        update(existing, additional, pattern)
-        dump(existing, args.output or args.pot)
-
-    elif args.action == "clean":
-        translations = load(args.translations)
-        messages = load(args.messages)
-        new_messages, removed = sync(translations, messages, pattern)
-        dump(new_messages, args.output or args.translations)
-        if args.removed:
-            dump(removed, args.removed)
+        rejected = merge(additional, existing, pattern)
+        if not args.dry_run:
+            dump(existing, args.output or args.pot)
+        if args.rejected:
+            dump(rejected, args.rejected)
 
     elif args.action == "template":
         existing = load(args.translations)

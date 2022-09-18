@@ -1,0 +1,19 @@
+__init__.py:
+    A:
+        A class attribute: null
+        f:
+            default:
+                a: b
+            some/directory: null
+            File {x}: null
+            Not file {x + ".bak"}: Ni datoteka
+            extra message: null
+    __main__: null
+    extra namespace:
+        with: something
+    Please don't run this.: null
+    Import it, if you must.: translated
+submodule/apples.py:
+    Oranges: null
+trash/nothing.py:
+    f: a message

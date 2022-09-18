@@ -1,11 +1,13 @@
+import io
 import os
 import unittest
+from contextlib import redirect_stdout
 
 import libcst as cst
 
 from trubar.actions import \
     StringCollector, StringTranslator, walk_files, \
-    collect, missing, update, template, sync
+    collect, missing, merge, template
 
 import trubar.tests.test_module
 
@@ -265,7 +267,7 @@ class ActionsTest(unittest.TestCase):
              "2_foo": {"a": {"b": "c"}}}
         )
 
-    def test_update(self):
+    def test_merge(self):
         existing = {
             "a": None,
             "c": "not-none",
@@ -273,7 +275,7 @@ class ActionsTest(unittest.TestCase):
             "e": "y",
             "f": {"g": "z",
                   "i": None,
-                  "j": None,
+                  "j": {"a": None},
                   "k": None},
             "k": {"p": None},
             "m": None,
@@ -288,13 +290,17 @@ class ActionsTest(unittest.TestCase):
             "e": True,
             "f": {"g": "h",
                   "i": False,
-                  "j": None,
+                  "j": "r",
+                  "x": "y",
                   "k": True},
-            "k": "l",
-            "m": {"n": "o"},
+            "k": None,
+            "m": {"u": "v"},
             "p": {"q": "r"}
         }
-        update(existing, additional)
+        with io.StringIO() as buf, redirect_stdout(buf):
+            removed = merge(additional, existing)
+            printed = buf.getvalue()
+
         self.assertEqual(
             existing,
             {"a": "b",
@@ -303,15 +309,23 @@ class ActionsTest(unittest.TestCase):
              "e": True,
              "f": {"g": "h",
                    "i": False,
-                   "j": None,
+                   "j": {"a": None},
                    "k": True},
-             "k": "l",
-             "m": {"n": "o"},
+             "k": {"p": None},
+             "m": None,
              "p": {"q": "r"},
              "s": None,
              "t": {"u": "v"}
             }
         )
+        self.assertEqual(set(removed), {"f", "k", "m"})
+        self.assertEqual(set(removed["f"]), {"x", "j"})
+        self.assertEqual(printed,
+                         """f/j: targe is namespace, source gives a message; rejected
+f/x: not in target structure; rejected
+k: targe is namespace, source gives a message; rejected
+m: target is message, source gives namespace; rejected
+""")
 
     def test_template(self):
         messages = {
@@ -330,47 +344,8 @@ class ActionsTest(unittest.TestCase):
             "f": { "g": None}
         }
         )
-        self.assertEqual(
-            template(messages, keep_false=True),
-           {"a": None,
-            "c": False,
-            "d": None,
-            "e": None,
-            "f": { "g": None, "i": False},
-            "j": {"k": False, "l": {"m": False, "n": False}}
-            }
-        )
-        self.assertEqual(template(messages, "f"), {"f": { "g": None}})
+        self.assertEqual(template(messages, "f"), {"f": {"g": None}})
         self.assertEqual(template(messages, "g"), {})
-
-    def test_sync(self):
-        messages = {
-            "a": "b",
-            "c": False,
-            "d": True,
-            "e": None,
-            "f": {"g": "h", "i": False},
-            "j": { "k": False, "l": {"m": False, "n": False}}
-        }
-        new_messages = {
-            "a": "c",
-            "c": None,
-            "e": {"b": "d"},
-            "f": {"g": "w"},
-            "j": "k",
-            "p": "q",
-            "r": {"s": False, "t": "x"}
-        }
-        new, removed = sync(messages, new_messages)
-        self.assertEqual(
-            new,
-            {"a": "b",
-             "c": False,
-             "e": {"b": None},
-             "f": {"g": "h"},
-             "j": None,
-             "p": None,
-             "r": {"s": False, "t": None}})
 
 
 if __name__ == "__main__":

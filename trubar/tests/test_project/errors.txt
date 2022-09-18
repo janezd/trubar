@@ -1,0 +1,4 @@
+__init__.py/A/f/default: target is message, source gives namespace; rejected
+__init__.py/A/f/extra message: not in target structure; rejected
+__init__.py/extra namespace: not in target structure; rejected
+trash/nothing.py/f: targe is namespace, source gives a message; rejected
