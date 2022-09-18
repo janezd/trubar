@@ -12,15 +12,17 @@ Trubar is pip-installable:
 pip install trubar`
 ```
 
-### Why working on the source level?
+### Trubar works on source level
 
-Python's f-strings cannot be translated using gettext or similar tools, because they translate a pattern, while f-strings are born interpolated, that is, with expressions already computed.
+Unlike gettext, Trubar does not translate by passing a string to a function. Trubar rewrites source files and replaces the original strings with their translations.
+
+Why? For two reasons. Python's f-strings cannot be translated using gettext or similar tools, because they translate a pattern, while f-strings are born interpolated, that is, with expressions already computed.
 
 Furthermore, making the code translatable requires effort by developers and, worse, clutters the code (even calling `_` would add some mess; with `_` having a different meaning a Python, the translation function would have to be called `tr` or similar). We prefer keeping the code clean.
 
 ### Translation Workflow
 
-#### Collection
+#### Collection - or making a template
 
 We first collect strings in source files into a file. Its extension is arbitrary, but '.yaml' is recommended to help editors help us.
 
@@ -30,20 +32,23 @@ trubar collect -o translations.yaml
 
 `trubar collect` will ignore docstrings and, in general, all strings that appear directly inside modules, classes and functions. These are often used to comment out parts of the code and normally have no effect.
 
+
+Another start point is to take existing translations into another language and run
+
+```sh
+trubar template existing-translations.yaml -o translations.yaml
+```
+
+where `existing-translations.yaml` is the name of the file with translations to another language, and `translations.yaml` is the file where you'll put your translations. This is better because the previous translator may have marked the strings that do not require translating. `template` will keep those marks.
+
 We can limit the search to paths that (including the file name) include some pattern, by using `-p pattern`, e.g. `-p widgets/data` or `owtable`. We will however need one big file with all messages, so don't use this option just yet.
 
 #### Filtering out what to translate
 
-Translator can create *translations* by editing this file. Alternatively, (s)he can extract portions of this file into a new file using
+Translator can create *translations* by editing this file. Alternatively, (s)he can extract portions of this file into a new file by using `-p` to specify a directory or a file.
 
 ```sh
 trubar missing translations.yaml -p widgets/data -o data.yaml
-```
-
-or, for a single widget
-
-```sh
-trubar missing translations.yaml -p owtable -o data.yaml
 ```
 
 (Remember: the pattern is just a part of the path: 'ata/owra' would match data/owrank.py and data/owrandomize.py.)
@@ -61,22 +66,22 @@ trubar missing data.yaml -o still-missing.yaml
 We update the "big" translation file with partial translations with
 
 ```sh
-trubar update data.yaml translations.yaml
+trubar merge data.yaml translations.yaml
 ```
 
-This goes through all messages in translation.yaml and adds the translations from data.yaml. Existing translations are not removed if they are not present in the partial translation (with exception of `false` flag, see below). The result is written translations.yaml.
+This goes through all messages in translation.yaml and adds the translations from data.yaml. Existing translations are not removed if they are not present in the partial translation (with exception of `false` flag, see below). The result is written to translations.yaml.
 
-If we would like to write to a different file instead of overwriting the existing translations (better safe than sorry), we add the `-o` (`--output`) option.
+To write to a different file instead of overwriting the existing translations (better safe than sorry), add the `-o` (`--output`) option.
 
 #### Translating sources
 
 `trubar translate` writes a new tree of source files in which strings are replaced by their translations.
 
 ```sh
-trubar translate translations.yaml -s soursepath -d destinationpath
+trubar translate translations.yaml -s sourcepath -d destinationpath
 ```
 
-If destination already exists it will be overwritten without warning, but any other existing files in destination will not be removed.
+If destination already exists it will be overwritten without warning. Any other existing files in destination will not be removed.
 
 #### When source messages change ...
 
@@ -84,30 +89,27 @@ If destination already exists it will be overwritten without warning, but any ot
 
 ```sh
 mv translations.yaml old-translations.yaml
-trubar collect -o translations.yaml
+trubar collect -o translations.yaml  # or trubar template -o translations-to-another-language.yaml
 trubar update old-translations.yaml translations.yaml
 ```
 
 And keep `old-translations.yaml` for a while, to be safe.
 
-#### Being kind to translators
-
-It would be nice to translators if we prepared an empty translation file in which strings that must not be changed are marked by `false` flag (see below). Alternatively, we can another action to `trubar` - updating a file with `false`'s from another file.
 
 ### How to translate
 
 Translations are a stored in hierarchical form. The top-most layer are file paths, which correspond to modules. Below that, there are namespaces, that is, names of classes and functions. These are hierarchical, as they appear in the module. Do not touch those; this is how `trubar translate` knows where to put what. At the bottom-most layer there are pair of messages and translations.
 
-The translation can be one of the following:
+The "translation" can be one of the following:
 
-- `null`: the message has not been translated (yet?). This is default, and must be change by translator to one of the below alternatives.
-- `false`: the message must not be (or will not) be translated, typically because they are string literals, names of types, fields in named tuples and similar;
-- `true`: the message is a text seen by the user, but needs no translation for this particular language;
-- a string with translation.
+- a string with translation;
+- `null`: the message has not been translated (yet?). This is default, and must be change by translator to one of the below alternatives;
+- `false`: the message must not be (or will not) be translated, typically because they are not actually shown to the user but used inside the program, e.g. string literals, names of types, fields in named tuples and similar;
+- `true`: the message is a text seen by the user, but needs no translation for this particular language.
 
 The translator's task is to replace `null`'s with `false`'s, `true`'s or translations.
 
-The effect of changing `null` to `false` is that `trubar missing` will treat the message as done, e.g. it will not appear as missing translation.
+The effect of changing `null` to `false` is that `trubar missing` will treat the message as done, e.g. it will not appear as missing translation. Also, `template` replace translations and falses by nulls, but keeps trues.
 
 #### Quotes
 
