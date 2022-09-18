@@ -1,0 +1,10 @@
+__init__.py:
+    A:
+        f:
+            default:
+                a: b
+            extra message: null
+    extra namespace:
+        with: something
+trash/nothing.py:
+    f: a message
