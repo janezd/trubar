@@ -9,8 +9,7 @@ import libcst as cst
 from libcst.metadata import ParentNodeProvider
 
 __all__ = ["collect", "translate", "merge", "missing", "template",
-           "load", "dump",
-           "any_translations"]
+           "load", "dump"]
 
 MsgDict = Dict[str, Union["MsgDict", str]]
 NamespaceNode = Union[cst.Module, cst.FunctionDef, cst.ClassDef]
@@ -190,8 +189,6 @@ def translate(translations: MsgDict,
     source = source or "."
     destination = destination or "."
     for name, fullname in walk_files(source, pattern):
-        if not quiet and not any_translations(translations.get(name, {})):
-            print(f"{name}: no translations")
         with open(fullname, encoding=__encoding) as f:
             orig_source = f.read()
             tree = cst.parse_module(orig_source)
@@ -283,9 +280,3 @@ def dump(messages: MsgDict, filename: str) -> None:
     with open(filename, "wb") as f:
         f.write(yaml.dump(messages, indent=4, sort_keys=False,
                           encoding="utf-8", allow_unicode=True))
-
-
-def any_translations(context):
-    return any(any_translations(obj) if isinstance(obj, dict)
-               else isinstance(obj, str)
-               for obj in context.values())
