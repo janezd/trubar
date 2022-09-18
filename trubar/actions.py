@@ -1,5 +1,6 @@
 import os
 import locale
+import shutil
 import sys
 from dataclasses import dataclass
 from typing import Union, Iterator, Tuple, Dict, List, Optional
@@ -9,8 +10,7 @@ import libcst as cst
 from libcst.metadata import ParentNodeProvider
 
 __all__ = ["collect", "translate", "merge", "missing", "template",
-           "load", "dump",
-           "any_translations"]
+           "load", "dump"]
 
 MsgDict = Dict[str, Union["MsgDict", str]]
 NamespaceNode = Union[cst.Module, cst.FunctionDef, cst.ClassDef]
@@ -159,11 +159,12 @@ class StringTranslator(cst.CSTTransformer):
         return self.__translate(original_node, updated_node)
 
 
-def walk_files(path: str, pattern: str = "") -> Iterator[Tuple[str, str]]:
+def walk_files(path: str, pattern: str = "", *, skip_nonpython: bool
+               ) -> Iterator[Tuple[str, str]]:
     for dirpath, _, files in sorted(os.walk(path)):
         for name in sorted(files):
-            if name.startswith("test_") \
-                    or not name.endswith(".py"):
+            if skip_nonpython and (name.startswith("test_")
+                                   or not name.endswith(".py")):
                 continue
             name = os.path.join(dirpath, name)
             if pattern in name:
@@ -172,7 +173,7 @@ def walk_files(path: str, pattern: str = "") -> Iterator[Tuple[str, str]]:
 
 def collect(source: str, pattern: str, *, quiet=False) -> MsgDict:
     collector = StringCollector()
-    for name, fullname in walk_files(source, pattern):
+    for name, fullname in walk_files(source, pattern, skip_nonpython=True):
         if not quiet:
             print(f"Parsing {name}")
         with open(fullname, encoding=__encoding) as f:
@@ -189,9 +190,15 @@ def translate(translations: MsgDict,
               *, quiet=False, dry_run=False) -> None:
     source = source or "."
     destination = destination or "."
-    for name, fullname in walk_files(source, pattern):
-        if not quiet and not any_translations(translations.get(name, {})):
-            print(f"{name}: no translations")
+    for name, fullname in walk_files(source, pattern, skip_nonpython=False):
+        transname = os.path.join(destination, name)
+        path, _ = os.path.split(transname)
+        os.makedirs(path, exist_ok=True)
+        if not name.endswith(".py"):
+            if not dry_run:
+                shutil.copyfile(fullname, transname)
+            continue
+
         with open(fullname, encoding=__encoding) as f:
             orig_source = f.read()
             tree = cst.parse_module(orig_source)
@@ -200,9 +207,6 @@ def translate(translations: MsgDict,
         trans_source = tree.code_for_node(translated)
         if not quiet:
             print(f"Writing {name}")
-        transname = os.path.join(destination, name)
-        path, _ = os.path.split(transname)
-        os.makedirs(path, exist_ok=True)
         if not dry_run:
             with open(transname, "wt", encoding=__encoding) as f:
                 f.write(trans_source)
@@ -283,9 +287,3 @@ def dump(messages: MsgDict, filename: str) -> None:
     with open(filename, "wb") as f:
         f.write(yaml.dump(messages, indent=4, sort_keys=False,
                           encoding="utf-8", allow_unicode=True))
-
-
-def any_translations(context):
-    return any(any_translations(obj) if isinstance(obj, dict)
-               else isinstance(obj, str)
-               for obj in context.values())
