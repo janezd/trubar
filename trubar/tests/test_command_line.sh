@@ -33,16 +33,23 @@ rm messages.yaml
 echo
 echo "Translate"
 print_run 'trubar translate -s test_project -d test_translations test_project/translations.yaml -q'
-diff -r -x "*.yaml" test_translations si_translations
+diff -r -x "*.yaml" -x "*.txt" test_translations si_translations
 rm -r test_translations
 
 echo "... with pattern"
 mkdir test_translations
 cp test_project/__init__.py test_translations/__init__.py
 print_run 'trubar translate -s test_project -d test_translations test_project/translations.yaml -p submodule -q'
+diff -r test_translations/submodule si_translations/submodule
 diff test_translations/__init__.py test_project/__init__.py
-diff test_translations/submodule/apples.py si_translations/submodule/apples.py
 rm -r test_translations
+
+echo "... dry run"
+cp -r test_project test_translations
+print_run 'trubar translate -s test_project -d test_translations test_project/translations.yaml -q -n'
+diff -r test_project test_translations
+rm -r test_translations
+
 
 echo
 echo "Merge"

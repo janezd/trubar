@@ -173,7 +173,7 @@ class UtilsTest(unittest.TestCase):
     def test_walk_files(self):
         tmp = test_module_path
         self.assertEqual(
-            set(walk_files(tmp)),
+            set(walk_files(tmp, skip_nonpython=True)),
             {('bar_module/__init__.py',
               f'{tmp}/bar_module/__init__.py'),
              ('bar_module/foo_module/__init__.py',
@@ -188,7 +188,7 @@ class UtilsTest(unittest.TestCase):
         try:
             os.chdir(tmp)
             self.assertEqual(
-                set(walk_files(".")),
+                set(walk_files(".", skip_nonpython=True)),
                 {('bar_module/__init__.py',
                   './bar_module/__init__.py'),
                  ('bar_module/foo_module/__init__.py',
@@ -199,7 +199,7 @@ class UtilsTest(unittest.TestCase):
                   './__init__.py')}
             )
             self.assertEqual(
-                set(walk_files(".", "bar")),
+                set(walk_files(".", "bar", skip_nonpython=True)),
                 {('bar_module/__init__.py',
                   './bar_module/__init__.py'),
                  ('bar_module/foo_module/__init__.py',
@@ -207,6 +207,20 @@ class UtilsTest(unittest.TestCase):
             )
         finally:
             os.chdir(old_path)
+
+        self.assertEqual(
+            set(walk_files(tmp, skip_nonpython=False)),
+            {('bar_module/__init__.py',
+              f'{tmp}/bar_module/__init__.py'),
+             ('bar_module/foo_module/__init__.py',
+              f'{tmp}/bar_module/foo_module/__init__.py'),
+             ('baz_module/__init__.py',
+              f'{tmp}/baz_module/__init__.py'),
+             ('__init__.py',
+              f'{tmp}/__init__.py'),
+             ('baz_module/not-python.js',
+              f'{tmp}/baz_module/not-python.js')}
+        )
 
 
 class ActionsTest(unittest.TestCase):
