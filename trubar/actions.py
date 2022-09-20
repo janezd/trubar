@@ -108,6 +108,12 @@ class StringCollector(cst.CSTVisitor):
 
 
 class StringTranslator(cst.CSTTransformer):
+    class IncorrectType(Exception):
+        def __init__(self, msg, context):
+            super().__init__(msg)
+            self.context = context
+
+
     def __init__(self, context: MsgDict, module: cst.Module):
         super().__init__()
         self.module = module
@@ -117,8 +123,19 @@ class StringTranslator(cst.CSTTransformer):
     def context(self):
         return self.context_stack[-1]
 
+    def _error_context(self):
+        return ":".join(
+            [name for name, sub in prev.items() if sub is cont][0]
+            for prev, cont in zip(self.context_stack, self.context_stack[1:]))
+
     def push_context(self, node: NamespaceNode) -> None:
-        self.context_stack.append(self.context.get(node.name.value, {}))
+        namespace = self.context.get(node.name.value, {})
+        if not isinstance(namespace, dict):
+            raise self.IncorrectType(
+                f"expected dict for `{node.name.value}`, "
+                f"got {type(namespace).__name__}",
+                self._error_context())
+        self.context_stack.append(namespace)
 
     def pop_context(self) -> None:
         self.context_stack.pop()
@@ -135,10 +152,16 @@ class StringTranslator(cst.CSTTransformer):
         lq = len(node.quote)
         original = self.module.code_for_node(node)[len(node.prefix) + lq:-lq]
         translation = self.context.get(original)
-        if not isinstance(translation, str):
+        if translation in (None, False, True):
             return updated_node
-        return cst.parse_expression(
-            f'{node.prefix}{node.quote}{translation}{node.quote}')
+        elif isinstance(translation, str):
+            return cst.parse_expression(
+                f'{node.prefix}{node.quote}{translation}{node.quote}')
+        else:
+            raise self.IncorrectType(
+                f"unexpected {type(translation).__name__} as translation for "
+                f"{node.prefix}{node.quote}{original}{node.quote}",
+                self._error_context())
 
     visit_ClassDef = push_context
     visit_FunctionDef = push_context
@@ -204,7 +227,12 @@ def translate(translations: MsgDict,
             orig_source = f.read()
             tree = cst.parse_module(orig_source)
         translator = StringTranslator(translations[name], tree)
-        translated = tree.visit(translator)
+        try:
+            translated = tree.visit(translator)
+        except StringTranslator.IncorrectType as exc:
+            print(f"Error in {fullname}{':' * bool(exc.context)}{exc.context}: "
+                  f"{exc}")
+            continue
         trans_source = tree.code_for_node(translated)
         if not quiet:
             print(f"Writing {name}")
