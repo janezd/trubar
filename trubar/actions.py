@@ -193,7 +193,8 @@ def translate(translations: MsgDict,
     for name, fullname in walk_files(source, pattern, skip_nonpython=False):
         transname = os.path.join(destination, name)
         path, _ = os.path.split(transname)
-        os.makedirs(path, exist_ok=True)
+        if not dry_run:
+            os.makedirs(path, exist_ok=True)
         if not name.endswith(".py"):
             if not dry_run:
                 shutil.copyfile(fullname, transname)
