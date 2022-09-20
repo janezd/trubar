@@ -93,7 +93,7 @@ def main() -> None:
         dump(messages, args.output)
 
     elif args.action == "translate":
-        if not (args.source or args.dest):
+        if not (args.source or args.dest) and not args.dry_run:
             argparser.error("at least one of --source and --dest required")
         if args.source == args.dest:
             argparser.error("source and destination must not be the same")

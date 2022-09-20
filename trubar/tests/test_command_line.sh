@@ -10,6 +10,16 @@ function print_run() {
 
 cd trubar/tests
 
+# Remove anything that could remain from previous runs
+rm -f messages.yaml
+rm -rf test_translations
+rm -rf si_translations_copy
+rm -f updated_translations.yaml rejected.yaml errors.txt
+rm -f translations-copy.yaml
+rm -f missing.yaml
+rm -f template.yaml
+
+
 (
 set -e
 echo "Collect"
@@ -18,10 +28,12 @@ diff messages.yaml test_project/all_messages.yaml
 if [ -n "`trubar collect -s test_project -o messages.yaml -q`" ]
 then
   echo "Not quiet."
+  exit 1
 fi
 if [ -z "`trubar collect -s test_project -o messages.yaml`" ]
 then
   echo "Not loud."
+  exit 1
 fi
 rm messages.yaml
 
@@ -32,8 +44,10 @@ rm messages.yaml
 
 echo
 echo "Translate"
+cp -r si_translations si_translations_copy
 print_run 'trubar translate -s test_project -d test_translations test_project/translations.yaml -q'
 diff -r -x "*.yaml" -x "*.txt" test_translations si_translations
+diff -r si_translations si_translations_copy
 rm -r test_translations
 
 echo "... with pattern"
@@ -42,14 +56,33 @@ cp test_project/__init__.py test_translations/__init__.py
 print_run 'trubar translate -s test_project -d test_translations test_project/translations.yaml -p submodule -q'
 diff -r test_translations/submodule si_translations/submodule
 diff test_translations/__init__.py test_project/__init__.py
+diff -r si_translations si_translations_copy
 rm -r test_translations
 
 echo "... dry run"
-cp -r test_project test_translations
 print_run 'trubar translate -s test_project -d test_translations test_project/translations.yaml -q -n'
-diff -r test_project test_translations
-rm -r test_translations
+diff -r si_translations si_translations_copy
+if [ -d test_translations ]
+then
+  echo "Not dry."
+  exit 1
+fi
 
+echo "... faulty translations"
+print_run 'trubar translate -s test_project -d test_translations test_project/faulty_translations.yaml -q'
+diff -r si_translations/submodule/apples.py test_translations/submodule/apples.py
+if [ -f test_translations/__init__.py ]
+then
+  echo "Wrote errored file."
+  exit 1
+fi
+if [ -f test_translations/trash/nothing.py ]
+then
+  echo "Wrote errored file."
+  exit 1
+fi
+rm -r test_translations
+rm -r si_translations_copy
 
 echo
 echo "Merge"
