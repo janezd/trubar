@@ -121,6 +121,19 @@ diff template.yaml test_project/template.yaml
 rm template.yaml
 
 echo
+echo "Checks for file sanity"
+set +e
+print_run 'trubar missing test_project/bad_structure.yaml -o missing.yaml' errors_structure.txt
+if [ $? -eq 0 ]
+then
+    echo "Non-zero exit code expected"
+    exit 1
+fi
+set -e
+diff errors_structure.txt test_project/errors_structure.txt
+rm errors_structure.txt
+
+echo
 echo "Done."
 )
 

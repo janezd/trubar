@@ -1,5 +1,6 @@
 import os
 import locale
+import re
 import shutil
 import sys
 from dataclasses import dataclass
@@ -31,6 +32,15 @@ class State:
     name: str
 
 
+def prefix_for_node(node: NamespaceNode):
+    if isinstance(node, cst.FunctionDef):
+        return "def "
+    elif isinstance(node, cst.ClassDef):
+        return "class "
+    assert isinstance(node, cst.Module)
+    return ""
+
+
 class StringCollector(cst.CSTVisitor):
     METADATA_DEPENDENCIES = (ParentNodeProvider, )
 
@@ -55,6 +65,8 @@ class StringCollector(cst.CSTVisitor):
         self.pop_context()
 
     def push_context(self, node: NamespaceNode, name=None) -> None:
+        if name is None:
+            name = f"{prefix_for_node(node)}`{node.name.value}`"
         self.function_stack.append(State(node, name))
         self.contexts.append({})
 
@@ -62,9 +74,7 @@ class StringCollector(cst.CSTVisitor):
         state = self.function_stack.pop()
         context = self.contexts.pop()
         if context:
-            # TODO: somehow decorate the name - function name can be the same as
-            # a string!
-            self.contexts[-1][state.name or state.node.name.value] = context
+            self.contexts[-1][state.name] = context
 
     def is_useless_string(self, node: cst.CSTNode) -> bool:
         # This is primarily to exclude docstrings: exclude strings if they
@@ -118,7 +128,8 @@ class StringTranslator(cst.CSTTransformer):
         return self.context_stack[-1]
 
     def push_context(self, node: NamespaceNode) -> None:
-        self.context_stack.append(self.context.get(node.name.value, {}))
+        key = f"{prefix_for_node(node)}`{node.name.value}`"
+        self.context_stack.append(self.context.get(key, {}))
 
     def pop_context(self) -> None:
         self.context_stack.pop()
@@ -194,7 +205,7 @@ def translate(translations: MsgDict,
         transname = os.path.join(destination, name)
         path, _ = os.path.split(transname)
         os.makedirs(path, exist_ok=True)
-        if not name.endswith(".py"):
+        if not name.endswith(".py") or name not in translations:
             if not dry_run:
                 shutil.copyfile(fullname, transname)
             continue
@@ -220,7 +231,7 @@ def missing(translations: MsgDict,
         if pattern not in obj:
             continue
         trans = translations.get(obj)
-        if trans is None or (isinstance(trans, dict) != isinstance(orig, dict)):
+        if trans is None:
             no_translations[obj] = orig  # orig may be `None` or a whole subdict
         elif isinstance(orig, dict):
             if submiss := missing(translations[obj], orig, ""):
@@ -230,31 +241,20 @@ def missing(translations: MsgDict,
 
 def merge(additional: MsgDict, existing: MsgDict, pattern: str = "",
           path: str = "") -> MsgDict:
-
-    def skip(s):
-        print(f"{npath}: {s}; rejected")
-        rejected[msg] = trans
-
     rejected = {}
     for msg, trans in additional.items():
         if pattern not in msg:
             continue
         npath = path + "/" * bool(path) + msg
         if msg not in existing:
-            skip("not in target structure")
+            print(f"{npath} not in target structure")
+            rejected[msg] = trans
         elif isinstance(trans, dict):
-            if isinstance(existing[msg], dict):
-                subreject = merge(trans, existing[msg], "", npath)
-                if subreject:
-                    rejected[msg] = subreject
-            else:
-                skip("target is message, source gives namespace")
-        else:
-            if not isinstance(existing[msg], dict):
-                if trans is not None:
-                    existing[msg] = trans
-            else:
-                skip("targe is namespace, source gives a message")
+            subreject = merge(trans, existing[msg], "", npath)
+            if subreject:
+                rejected[msg] = subreject
+        elif trans is not None:
+            existing[msg] = trans
     return rejected
 
 
@@ -277,10 +277,42 @@ def load(filename: str) -> MsgDict:
         sys.exit(2)
     try:
         with open(filename, encoding=__encoding) as f:
-            return yaml.load(f, Loader=yaml.Loader)
+            messages = yaml.load(f, Loader=yaml.Loader)
     except yaml.YAMLError as exc:
         print(f"Error while reading file: {exc}")
         sys.exit(3)
+    if not check_sanity(messages, filename):
+        sys.exit(4)
+    return messages
+
+
+def check_sanity(messages: MsgDict, filename: Optional[str] = None):
+    key_re = re.compile("^((def)|(class)) `\w+`")
+    sane = True
+
+    def fail(msg):
+        nonlocal sane
+        if sane and filename is not None:
+            print(f"Errors in {filename}:")
+        print(msg)
+        sane = False
+
+    def check_sane(messages: MsgDict, path: str):
+        for key, value in messages.items():
+            npath = f"{path}/{key}"
+            if key_re.fullmatch(key) is None:
+                if isinstance(value, dict):
+                    fail(f"{npath}: Unexpectedly a namespace")
+            else:
+                if not isinstance(value, dict):
+                    fail(f"{npath}: Unexpectedly not a namespace")
+                else:
+                    check_sane(value, f"{npath}")
+
+    for key, value in messages.items():
+        if isinstance(value, dict):
+            check_sane(value, key)
+    return sane
 
 
 def dump(messages: MsgDict, filename: str) -> None:

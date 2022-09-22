@@ -1,7 +1,7 @@
 __init__.py:
-    A:
+    class `A`:
         A class attribute: false
-        f:
+        def `f`:
             default: false
             some/directory: true
             File {x}: Datoteka {x}
@@ -11,10 +11,10 @@ __init__.py:
     Please don't run this.: null
     Import it, if you must.: null
 submodule/apples.py:
-    Oranges:
+    class `Oranges`:
         Orange: null
         Red: null
 trash/nothing.py:
-    f:
+    def `f`:
         To see here: null
         ', really.': null

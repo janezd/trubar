@@ -1,6 +1,6 @@
 __init__.py:
-    A:
-        f:
+    class `A`:
+        def `f`:
             default: "privzeto"
             some/directory: false
             File {x}: Datoteka {x}

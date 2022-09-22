@@ -6,7 +6,7 @@ from contextlib import redirect_stdout
 import libcst as cst
 
 from trubar.actions import \
-    StringCollector, StringTranslator, walk_files, \
+    StringCollector, StringTranslator, walk_files, check_sanity, \
     collect, missing, merge, template
 
 import trubar.tests.test_module
@@ -31,14 +31,14 @@ def f(x):
     c = \"\"\"and yet another\"\"\"
     d = '''and there's more'''
 """)
-        expected = {'foo_module': {'f': {'a string': None,
-                                         'another string': None,
-                                         'and yet another': None,
-                                         "and there's more": None,}}}
+        expected = {'foo_module': {'def `f`': {'a string': None,
+                                               'another string': None,
+                                               'and yet another': None,
+                                               "and there's more": None}}}
         self.assertEqual(msgs, expected)
         # order should match, too
-        self.assertEqual(list(msgs["foo_module"]["f"]),
-                         list(expected["foo_module"]["f"]))
+        self.assertEqual(list(msgs["foo_module"]["def `f`"]),
+                         list(expected["foo_module"]["def `f`"]))
 
     def test_formatted_string(self):
         msgs = self.collect("""
@@ -49,15 +49,16 @@ def f(x):
     c = f\"\"\"and yet another {3 + 3}\"\"\"
     d = f'''and there's more'''
 """)
-        expected = {'foo_module': {'f': {'a string {x}': None,
-                                         'another string {2 + 2}': None,
-                                         'and yet another {3 + 3}': None,
-                                         "and there's more": None}}}
+        expected = {'foo_module': {'def `f`': {
+            'a string {x}': None,
+            'another string {2 + 2}': None,
+            'and yet another {3 + 3}': None,
+            "and there's more": None}}}
 
         self.assertEqual(msgs, expected)
         # order should match, too
-        self.assertEqual(list(msgs["foo_module"]["f"]),
-                         list(expected["foo_module"]["f"]))
+        self.assertEqual(list(msgs["foo_module"]["def `f`"]),
+                         list(expected["foo_module"]["def `f`"]))
 
     def test_class_func(self):
         msgs = self.collect("""
@@ -78,8 +79,8 @@ class C:
         # check structure and order, thus `repr`
         self.assertEqual(
             repr(msgs),
-            "{'foo_module': {'A': {'b': {'c': {'foo': None, 'bar': None}, "
-            "'baz': None, 'B': {'baz': None}}}, 'C': {'crux': None}}}")
+            "{'foo_module': {'class `A`': {'def `b`': {'def `c`': {'foo': None, 'bar': None}, "
+            "'baz': None, 'class `B`': {'baz': None}}}, 'class `C`': {'crux': None}}}")
 
     def test_module_and_walk_and_collect(self):
         msgs = collect(test_module_path, "", quiet=True)
@@ -90,9 +91,9 @@ class C:
                  "I've seen things you people wouldn't believe...": None},
              'bar_module/__init__.py': {
                  'Attack ships on fire off the shoulder of Orion...': None},
-             'baz_module/__init__.py': {'f': {
+             'baz_module/__init__.py': {'def `f`': {
                  'I watched C-beams glitter in the dark near the Tannhäuser Gate.': None}},
-             '__init__.py': {'Future': {
+             '__init__.py': {'class `Future`': {
                 'All those moments will be lost in time, like tears in rain...': None,
                 'Time to die.': None}},
             }
@@ -112,8 +113,8 @@ def g(x):
     "useless string"''')
         self.assertEqual(
             msgs,
-            {'foo_module': {'f': {'not a docstring': None},
-                            'g': {'bar': None}}})
+            {'foo_module': {'def `f`': {'not a docstring': None},
+                            'def `g`': {'bar': None}}})
 
     def test_no_strings_within_interpolation(self):
         msgs = self.collect("""a = f'x = {len("foo")} {"bar"}'""")
@@ -141,11 +142,12 @@ class C:
     g = 'crux'
 """
 
-        translations = {'A': {'b': {'c': {'foo': 'sea food',
-                                          'bar': None},
-                                    'baz': True,
-                                    'B': {'baz{42}': False}}},
-                        'C': {'crux': ""}}
+        translations = {'class `A`': {'def `b`': {'def `c`': {'foo': 'sea food',
+                                                              'bar': None},
+                                                  'baz': True,
+                                                  'class `B`': {'baz{42}':
+                                                                    False}}},
+                        'class `C`': {'crux': ""}}
 
         tree = cst.parse_module(module)
         translator = StringTranslator(translations, tree)
@@ -222,6 +224,61 @@ class UtilsTest(unittest.TestCase):
               f'{tmp}/baz_module/not-python.js')}
         )
 
+    def test_check_sanity(self):
+        # unexpected namespace
+        with io.StringIO() as buf, redirect_stdout(buf):
+            self.assertFalse(check_sanity(
+                {"a": "b", "def `f`": {"x": {"y": "z"}}}))
+            self.assertEqual(
+                buf.getvalue(),
+                "def `f`/x: Unexpectedly a namespace\n")
+        # def is not a namespace
+        with io.StringIO() as buf, redirect_stdout(buf):
+            self.assertFalse(check_sanity(
+                {"module": {"a": "b", "def `f`": {"def `x`": "y"}}}))
+            self.assertEqual(
+                buf.getvalue(),
+                "module/def `f`/def `x`: Unexpectedly not a namespace\n")
+        # class is not a namespace
+        with io.StringIO() as buf, redirect_stdout(buf):
+            self.assertFalse(check_sanity(
+                {"module": {"a": "b", "def `f`": {"class `x`": "y"}}}))
+            self.assertEqual(
+                buf.getvalue(),
+                "module/def `f`/class `x`: Unexpectedly not a namespace\n")
+        # everything OK
+        with io.StringIO() as buf, redirect_stdout(buf):
+            self.assertTrue(check_sanity(
+                {"module": {"a": "b", "def `f`": {"class `x`": {"z": "t"}}}}))
+            self.assertEqual(
+                buf.getvalue(),
+                "")
+        # check entire structure, even when there are problems
+        with io.StringIO() as buf, redirect_stdout(buf):
+            self.assertFalse(check_sanity(
+                {"module1": {
+                    "a": "b",
+                    "def `f`": "t",
+                    "class `x`": {
+                        "z": "t",
+                        "m": {"x": False}
+                    },
+                    "t": "o"},
+                 "module2": {
+                    "def `g`": None,
+                    "x": "y"},
+                 "module3": {
+                    "a": "b"}
+                },
+                "somefile"))
+            self.assertEqual(
+                buf.getvalue(),
+                """Errors in somefile:
+module1/def `f`: Unexpectedly not a namespace
+module1/class `x`/m: Unexpectedly a namespace
+module2/def `g`: Unexpectedly not a namespace
+""")
+
 
 class ActionsTest(unittest.TestCase):
     # collect is already tested above
@@ -234,37 +291,39 @@ class ActionsTest(unittest.TestCase):
             "c": None,
             "d": False,
             "e": True,
-            "f": {"g": "h",
-                  "i": False,
-                  "j": None,
-                  "k": True},
+            "class `f`": {
+                "g": "h",
+                "i": False,
+                "j": None,
+                "k": True},
             "k": "l",
-            "m": {"n": "o"},
-            "p": {"q": "r"}
+            "def `m`": {"n": "o"},
+            "class `p`": {"q": "r"}
         }
         messages = {
             "a": None,
             "c": None,
             "d": None,
             "e": None,
-            "f": {"g": None,
-                  "i": None,
-                  "j": None,
-                  "k": None},
-            "k": {"p": None},
+            "class `f`": {
+                "g": None,
+                "i": None,
+                "j": None,
+                "k": None},
+            "def `k`": {"p": None},
             "m": None,
-            "p": {"q": None},
+            "class `p`": {"q": None},
             "s": None,
-            "t": {"u": None}
+            "def `t`": {"u": None}
         }
         self.assertEqual(
             missing(translations, messages),
             {"c": None,
-             "f": {"j": None},
-             "k": {"p": None},
+             "class `f`": {"j": None},
+             "def `k`": {"p": None},
              "m": None,
              "s": None,
-             "t": {"u": None}
+             "def `t`": {"u": None}
              }
         )
 
@@ -287,29 +346,31 @@ class ActionsTest(unittest.TestCase):
             "c": "not-none",
             "d": "x",
             "e": "y",
-            "f": {"g": "z",
-                  "i": None,
-                  "j": {"a": None},
-                  "k": None},
-            "k": {"p": None},
+            "class `f`": {
+                "g": "z",
+                "i": None,
+                "def `j`": {"a": None},
+                "k": None},
+            "def `k`": {"p": None},
             "m": None,
-            "p": {"q": None},
+            "class `p`": {"q": None},
             "s": None,
-            "t": {"u": "v"}
+            "def `t`": {"u": "v"}
         }
         additional = {
             "a": "b",
             "c": None,
             "d": False,
             "e": True,
-            "f": {"g": "h",
-                  "i": False,
-                  "j": "r",
-                  "x": "y",
-                  "k": True},
+            "class `f`": {
+                "g": "h",
+                "i": False,
+                "j": "r",
+                "x": "y",
+                "k": True},
             "k": None,
-            "m": {"u": "v"},
-            "p": {"q": "r"}
+            "def `m`": {"u": "v"},
+            "class `p`": {"q": "r"}
         }
         with io.StringIO() as buf, redirect_stdout(buf):
             removed = merge(additional, existing)
@@ -321,24 +382,24 @@ class ActionsTest(unittest.TestCase):
              "c": "not-none",
              "d": False,
              "e": True,
-             "f": {"g": "h",
-                   "i": False,
-                   "j": {"a": None},
-                   "k": True},
-             "k": {"p": None},
+             "class `f`": {"g": "h",
+                 "i": False,
+                 "def `j`": {"a": None},
+                 "k": True},
+             "def `k`": {"p": None},
              "m": None,
-             "p": {"q": "r"},
+             "class `p`": {"q": "r"},
              "s": None,
-             "t": {"u": "v"}
+             "def `t`": {"u": "v"}
             }
         )
-        self.assertEqual(set(removed), {"f", "k", "m"})
-        self.assertEqual(set(removed["f"]), {"x", "j"})
+        self.assertEqual(set(removed), {"class `f`", "k", "def `m`"})
+        self.assertEqual(set(removed["class `f`"]), {"x", "j"})
         self.assertEqual(printed,
-                         """f/j: targe is namespace, source gives a message; rejected
-f/x: not in target structure; rejected
-k: targe is namespace, source gives a message; rejected
-m: target is message, source gives namespace; rejected
+                         """class `f`/j not in target structure
+class `f`/x not in target structure
+k not in target structure
+def `m` not in target structure
 """)
 
     def test_template(self):

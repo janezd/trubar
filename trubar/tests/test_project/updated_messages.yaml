@@ -1,7 +1,7 @@
 __init__.py:
-    A:
+    class `A`:
         A class attribute: false
-        f:
+        def `f`:
             some/directory: true
             File {x}: Datoteka {x}
             Not a real file {x + ".bak"}: null
@@ -10,8 +10,8 @@ __init__.py:
     Import it, if you must.: null
     But rather - don't: null
 submodule/apples.py:
-    Oranges:
+    class `Oranges`:
         Orange: null
         Red: null
 trash/nothing.py:
-    f: null
+    def `f`: null
