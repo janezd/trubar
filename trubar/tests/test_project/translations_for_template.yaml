@@ -3,15 +3,15 @@ a:
     d: false
     e: true
     f: null
-    g:
+    def `g`:
         h: i
         j: false
-    k:
+    class `k`:
         l: false
-        m:
+        def `m`:
             n: false
             o: false
 p: false
-q:
+class `q`:
     r: false
     s: true

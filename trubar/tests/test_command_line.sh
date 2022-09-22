@@ -68,22 +68,6 @@ then
   exit 1
 fi
 
-echo "... faulty translations"
-print_run 'trubar translate -s test_project -d test_translations test_project/faulty_translations.yaml -q'
-diff -r si_translations/submodule/apples.py test_translations/submodule/apples.py
-if [ -f test_translations/__init__.py ]
-then
-  echo "Wrote errored file."
-  exit 1
-fi
-if [ -f test_translations/trash/nothing.py ]
-then
-  echo "Wrote errored file."
-  exit 1
-fi
-rm -r test_translations
-rm -r si_translations_copy
-
 echo
 echo "Merge"
 cp test_project/translations.yaml translations-copy.yaml
@@ -152,6 +136,19 @@ echo "Template"
 print_run 'trubar template test_project/translations_for_template.yaml -o template.yaml'
 diff template.yaml test_project/template.yaml
 rm template.yaml
+
+echo
+echo "Checks for file sanity"
+set +e
+print_run 'trubar missing test_project/bad_structure.yaml -o missing.yaml' errors_structure.txt
+if [ $? -eq 0 ]
+then
+    echo "Non-zero exit code expected"
+    exit 1
+fi
+set -e
+diff errors_structure.txt test_project/errors_structure.txt
+rm errors_structure.txt
 
 echo
 echo "Done."

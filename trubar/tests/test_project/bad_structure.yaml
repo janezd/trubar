@@ -1,0 +1,14 @@
+module1:
+    class `A`:
+        a: k
+        def `foo`: baz
+        b: l
+        def `f`:
+            class `AClass`: message?
+    err: Doesn't look good
+    realy_bad:
+        why namespace?: None
+
+module2:
+    def f: True
+    x: None

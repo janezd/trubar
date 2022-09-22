@@ -1,15 +1,15 @@
 __init__.py:
-    A:
+    class `A`:
         A class attribute: null
-        f:
-            default:
+        def `f`:
+            def `default`:
                 a: b
             some/directory: null
             File {x}: null
             Not file {x + ".bak"}: Ni datoteka
             extra message: null
     __main__: null
-    extra namespace:
+    def `extranamespace`:
         with: something
     Please don't run this.: null
     Import it, if you must.: translated

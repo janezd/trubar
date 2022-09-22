@@ -1,5 +1,6 @@
 import os
 import locale
+import re
 import shutil
 import sys
 from dataclasses import dataclass
@@ -31,6 +32,15 @@ class State:
     name: str
 
 
+def prefix_for_node(node: NamespaceNode):
+    if isinstance(node, cst.FunctionDef):
+        return "def "
+    elif isinstance(node, cst.ClassDef):
+        return "class "
+    assert isinstance(node, cst.Module)
+    return ""
+
+
 class StringCollector(cst.CSTVisitor):
     METADATA_DEPENDENCIES = (ParentNodeProvider, )
 
@@ -55,6 +65,8 @@ class StringCollector(cst.CSTVisitor):
         self.pop_context()
 
     def push_context(self, node: NamespaceNode, name=None) -> None:
+        if name is None:
+            name = f"{prefix_for_node(node)}`{node.name.value}`"
         self.function_stack.append(State(node, name))
         self.contexts.append({})
 
@@ -62,9 +74,7 @@ class StringCollector(cst.CSTVisitor):
         state = self.function_stack.pop()
         context = self.contexts.pop()
         if context:
-            # TODO: somehow decorate the name - function name can be the same as
-            # a string!
-            self.contexts[-1][state.name or state.node.name.value] = context
+            self.contexts[-1][state.name] = context
 
     def is_useless_string(self, node: cst.CSTNode) -> bool:
         # This is primarily to exclude docstrings: exclude strings if they
@@ -108,12 +118,6 @@ class StringCollector(cst.CSTVisitor):
 
 
 class StringTranslator(cst.CSTTransformer):
-    class IncorrectType(Exception):
-        def __init__(self, msg, context):
-            super().__init__(msg)
-            self.context = context
-
-
     def __init__(self, context: MsgDict, module: cst.Module):
         super().__init__()
         self.module = module
@@ -129,13 +133,8 @@ class StringTranslator(cst.CSTTransformer):
             for prev, cont in zip(self.context_stack, self.context_stack[1:]))
 
     def push_context(self, node: NamespaceNode) -> None:
-        namespace = self.context.get(node.name.value, {})
-        if not isinstance(namespace, dict):
-            raise self.IncorrectType(
-                f"expected dict for `{node.name.value}`, "
-                f"got {type(namespace).__name__}",
-                self._error_context())
-        self.context_stack.append(namespace)
+        key = f"{prefix_for_node(node)}`{node.name.value}`"
+        self.context_stack.append(self.context.get(key, {}))
 
     def pop_context(self) -> None:
         self.context_stack.pop()
@@ -154,14 +153,9 @@ class StringTranslator(cst.CSTTransformer):
         translation = self.context.get(original)
         if translation in (None, False, True):
             return updated_node
-        elif isinstance(translation, str):
-            return cst.parse_expression(
-                f'{node.prefix}{node.quote}{translation}{node.quote}')
-        else:
-            raise self.IncorrectType(
-                f"unexpected {type(translation).__name__} as translation for "
-                f"{node.prefix}{node.quote}{original}{node.quote}",
-                self._error_context())
+        assert isinstance(translation, str)
+        return cst.parse_expression(
+            f'{node.prefix}{node.quote}{translation}{node.quote}')
 
     visit_ClassDef = push_context
     visit_FunctionDef = push_context
@@ -218,7 +212,7 @@ def translate(translations: MsgDict,
         path, _ = os.path.split(transname)
         if not dry_run:
             os.makedirs(path, exist_ok=True)
-        if not name.endswith(".py"):
+        if not name.endswith(".py") or name not in translations:
             if not dry_run:
                 shutil.copyfile(fullname, transname)
             continue
@@ -227,12 +221,7 @@ def translate(translations: MsgDict,
             orig_source = f.read()
             tree = cst.parse_module(orig_source)
         translator = StringTranslator(translations[name], tree)
-        try:
-            translated = tree.visit(translator)
-        except StringTranslator.IncorrectType as exc:
-            print(f"Error in {fullname}{':' * bool(exc.context)}{exc.context}: "
-                  f"{exc}")
-            continue
+        translated = tree.visit(translator)
         trans_source = tree.code_for_node(translated)
         if not quiet:
             print(f"Writing {name}")
@@ -249,7 +238,7 @@ def missing(translations: MsgDict,
         if pattern not in obj:
             continue
         trans = translations.get(obj)
-        if trans is None or (isinstance(trans, dict) != isinstance(orig, dict)):
+        if trans is None:
             no_translations[obj] = orig  # orig may be `None` or a whole subdict
         elif isinstance(orig, dict):
             if submiss := missing(translations[obj], orig, ""):
@@ -259,31 +248,20 @@ def missing(translations: MsgDict,
 
 def merge(additional: MsgDict, existing: MsgDict, pattern: str = "",
           path: str = "") -> MsgDict:
-
-    def skip(s):
-        print(f"{npath}: {s}; rejected")
-        rejected[msg] = trans
-
     rejected = {}
     for msg, trans in additional.items():
         if pattern not in msg:
             continue
         npath = path + "/" * bool(path) + msg
         if msg not in existing:
-            skip("not in target structure")
+            print(f"{npath} not in target structure")
+            rejected[msg] = trans
         elif isinstance(trans, dict):
-            if isinstance(existing[msg], dict):
-                subreject = merge(trans, existing[msg], "", npath)
-                if subreject:
-                    rejected[msg] = subreject
-            else:
-                skip("target is message, source gives namespace")
-        else:
-            if not isinstance(existing[msg], dict):
-                if trans is not None:
-                    existing[msg] = trans
-            else:
-                skip("targe is namespace, source gives a message")
+            subreject = merge(trans, existing[msg], "", npath)
+            if subreject:
+                rejected[msg] = subreject
+        elif trans is not None:
+            existing[msg] = trans
     return rejected
 
 
@@ -306,10 +284,42 @@ def load(filename: str) -> MsgDict:
         sys.exit(2)
     try:
         with open(filename, encoding=__encoding) as f:
-            return yaml.load(f, Loader=yaml.Loader)
+            messages = yaml.load(f, Loader=yaml.Loader)
     except yaml.YAMLError as exc:
         print(f"Error while reading file: {exc}")
         sys.exit(3)
+    if not check_sanity(messages, filename):
+        sys.exit(4)
+    return messages
+
+
+def check_sanity(messages: MsgDict, filename: Optional[str] = None):
+    key_re = re.compile("^((def)|(class)) `\w+`")
+    sane = True
+
+    def fail(msg):
+        nonlocal sane
+        if sane and filename is not None:
+            print(f"Errors in {filename}:")
+        print(msg)
+        sane = False
+
+    def check_sane(messages: MsgDict, path: str):
+        for key, value in messages.items():
+            npath = f"{path}/{key}"
+            if key_re.fullmatch(key) is None:
+                if isinstance(value, dict):
+                    fail(f"{npath}: Unexpectedly a namespace")
+            else:
+                if not isinstance(value, dict):
+                    fail(f"{npath}: Unexpectedly not a namespace")
+                else:
+                    check_sane(value, f"{npath}")
+
+    for key, value in messages.items():
+        if isinstance(value, dict):
+            check_sane(value, key)
+    return sane
 
 
 def dump(messages: MsgDict, filename: str) -> None:

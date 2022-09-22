@@ -1,7 +1,7 @@
 __init__.py:
-    A:
+    class `A`:
         A class attribute: null
-        f:
+        def `f`:
             default: null
             some/directory: null
             File {x}: null
@@ -13,6 +13,6 @@ __init__.py:
 submodule/apples.py:
     Oranges: null
 trash/nothing.py:
-    f:
+    def `f`:
         To see here: null
         ', really.': null
