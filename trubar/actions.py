@@ -118,12 +118,6 @@ class StringCollector(cst.CSTVisitor):
 
 
 class StringTranslator(cst.CSTTransformer):
-    class IncorrectType(Exception):
-        def __init__(self, msg, context):
-            super().__init__(msg)
-            self.context = context
-
-
     def __init__(self, context: MsgDict, module: cst.Module):
         super().__init__()
         self.module = module
@@ -159,14 +153,9 @@ class StringTranslator(cst.CSTTransformer):
         translation = self.context.get(original)
         if translation in (None, False, True):
             return updated_node
-        elif isinstance(translation, str):
-            return cst.parse_expression(
-                f'{node.prefix}{node.quote}{translation}{node.quote}')
-        else:
-            raise self.IncorrectType(
-                f"unexpected {type(translation).__name__} as translation for "
-                f"{node.prefix}{node.quote}{original}{node.quote}",
-                self._error_context())
+        assert isinstance(translation, str)
+        return cst.parse_expression(
+            f'{node.prefix}{node.quote}{translation}{node.quote}')
 
     visit_ClassDef = push_context
     visit_FunctionDef = push_context
@@ -221,7 +210,8 @@ def translate(translations: MsgDict,
     for name, fullname in walk_files(source, pattern, skip_nonpython=False):
         transname = os.path.join(destination, name)
         path, _ = os.path.split(transname)
-        os.makedirs(path, exist_ok=True)
+        if not dry_run:
+            os.makedirs(path, exist_ok=True)
         if not name.endswith(".py") or name not in translations:
             if not dry_run:
                 shutil.copyfile(fullname, transname)
@@ -231,12 +221,7 @@ def translate(translations: MsgDict,
             orig_source = f.read()
             tree = cst.parse_module(orig_source)
         translator = StringTranslator(translations[name], tree)
-        try:
-            translated = tree.visit(translator)
-        except StringTranslator.IncorrectType as exc:
-            print(f"Error in {fullname}{':' * bool(exc.context)}{exc.context}: "
-                  f"{exc}")
-            continue
+        translated = tree.visit(translator)
         trans_source = tree.code_for_node(translated)
         if not quiet:
             print(f"Writing {name}")

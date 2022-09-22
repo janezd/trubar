@@ -68,22 +68,6 @@ then
   exit 1
 fi
 
-echo "... faulty translations"
-print_run 'trubar translate -s test_project -d test_translations test_project/faulty_translations.yaml -q'
-diff -r si_translations/submodule/apples.py test_translations/submodule/apples.py
-if [ -f test_translations/__init__.py ]
-then
-  echo "Wrote errored file."
-  exit 1
-fi
-if [ -f test_translations/trash/nothing.py ]
-then
-  echo "Wrote errored file."
-  exit 1
-fi
-rm -r test_translations
-rm -r si_translations_copy
-
 echo
 echo "Merge"
 cp test_project/translations.yaml translations-copy.yaml
