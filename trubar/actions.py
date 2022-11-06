@@ -10,6 +10,9 @@ import yaml
 import libcst as cst
 from libcst.metadata import ParentNodeProvider
 
+from trubar.config import config
+
+
 __all__ = ["collect", "translate", "merge", "missing", "template",
            "load", "dump"]
 
@@ -17,13 +20,10 @@ MsgDict = Dict[str, Union["MsgDict", str]]
 NamespaceNode = Union[cst.Module, cst.FunctionDef, cst.ClassDef]
 SomeString = Union[cst.SimpleString, cst.FormattedString]
 
-__encoding = "locale" if sys.version_info >= (3, 10) \
-    else locale.getpreferredencoding(False)
 
-
-def set_encoding(encoding):
-    global __encoding  # pylint: disable=global-statement
-    __encoding = encoding
+re_single_quote = re.compile(r"(^|[^\\])'")
+re_double_quote = re.compile(r'(^|[^\\])"')
+re_braced = re.compile(r"\{(?P<expr>[^}]+)\}")
 
 
 @dataclass
@@ -154,8 +154,27 @@ class StringTranslator(cst.CSTTransformer):
         if translation in (None, False, True):
             return updated_node
         assert isinstance(translation, str)
-        return cst.parse_expression(
-            f'{node.prefix}{node.quote}{translation}{node.quote}')
+
+        quote = node.quote
+        if config.auto_quotes:
+            has_single = re_single_quote.search(translation)
+            has_double = re_double_quote.search(translation)
+            if quote == "'" and has_single and not has_double:
+                quote = '"'
+            elif quote == '"' and has_double and not has_single:
+                quote = "'"
+
+        prefix = node.prefix
+        braced = re_braced.findall(translation)
+        if config.auto_prefix and braced and "f" not in prefix:
+            try:
+                [cst.parse_expression(expr) for expr in braced]
+            except cst.ParserSyntaxError:
+                pass
+            else:
+                prefix += "f"
+
+        return cst.parse_expression(f'{prefix}{quote}{translation}{quote}')
 
     visit_ClassDef = push_context
     visit_FunctionDef = push_context
@@ -193,7 +212,7 @@ def collect(source: str, pattern: str, *, quiet=False) -> MsgDict:
     for name, fullname in walk_files(source, pattern, skip_nonpython=True):
         if not quiet:
             print(f"Parsing {name}")
-        with open(fullname, encoding=__encoding) as f:
+        with open(fullname, encoding=config.encoding) as f:
             tree = cst.metadata.MetadataWrapper(cst.parse_module(f.read()))
             collector.open_module(name)
             tree.visit(collector)
@@ -217,16 +236,16 @@ def translate(translations: MsgDict,
                 shutil.copyfile(fullname, transname)
             continue
 
-        with open(fullname, encoding=__encoding) as f:
+        if not quiet:
+            print(f"Translating {name}")
+        with open(fullname, encoding=config.encoding) as f:
             orig_source = f.read()
             tree = cst.parse_module(orig_source)
         translator = StringTranslator(translations[name], tree)
         translated = tree.visit(translator)
         trans_source = tree.code_for_node(translated)
-        if not quiet:
-            print(f"Writing {name}")
         if not dry_run:
-            with open(transname, "wt", encoding=__encoding) as f:
+            with open(transname, "wt", encoding=config.encoding) as f:
                 f.write(trans_source)
 
 
@@ -283,7 +302,7 @@ def load(filename: str) -> MsgDict:
         print(f"File not found: {filename}")
         sys.exit(2)
     try:
-        with open(filename, encoding=__encoding) as f:
+        with open(filename, encoding=config.encoding) as f:
             messages = yaml.load(f, Loader=yaml.Loader)
     except yaml.YAMLError as exc:
         print(f"Error while reading file: {exc}")
