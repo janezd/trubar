@@ -1,9 +1,11 @@
 import argparse
+import os
 import sys
 
 from trubar.actions import \
     load, dump, \
     collect, translate, merge, missing, template
+from trubar.config import config
 
 
 def main() -> None:
@@ -15,6 +17,9 @@ def main() -> None:
         return subparser
 
     argparser = argparse.ArgumentParser()
+    argparser.add_argument(
+        "--conf", default="", metavar="configuration-file",
+        help="configuration file")
     subparsers = argparser.add_subparsers(required=True, dest="action")
 
     parser = add_parser("collect", "Collect message strings in source files")
@@ -85,6 +90,11 @@ def main() -> None:
         help="missing translations")
 
     args = argparser.parse_args(sys.argv[1:])
+
+    if args.conf:
+        config.update_from_file(args.conf)
+    elif os.path.exists("trubar-config.yaml"):
+        config.update_from_file("trubar-config.yaml")
 
     pattern = args.pattern
 

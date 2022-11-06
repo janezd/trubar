@@ -113,17 +113,17 @@ The effect of changing `null` to `false` is that `trubar missing` will treat the
 
 #### Quotes
 
-Messages are shown as strings without quotes. This may cause some problems because it doesn't show the translator which type of quotes is used in the source. It is however preferable to including quotes, because YAML would add quotes to quoted strings and translator would have to do the same.
+The use of quotes in YAML is optional, unless needed to properly interpret the value. When in doubt, use them. Double quoted strings interpret \n as newline; to have \n in Python source, use \\n. Or single quotes.
 
-When in doubt, check the source.
-
-YAML however adds quotes if the messages contains certain characters or ends with semicolon or space. Translator must do the same to conform to YAML format. This doesn't mean that quotes must be present (absent) if they are present (absent) in the original. Quotes can be omitted if unnecessary, and must be added when necessary.
+The quotes used in YAML are unrelated to quotes used in the corresponding Python code, hence the messages file does not show the type of the quote used in the original source. This could cause problems if translation contains, for instance, a single quote and the Python string itself is enclosed in single quotes. Trubar will detect that and replace the enclosing quotes in translated code, *unless* the translation contains both types of quotes *or* this is explicitly disabled in configuration file.
 
 #### f-strings
 
-The file with translations does not (and cannot indicate without a lot of additional clutter) whether the string is an f-string or not. This can be deduced by the presence of `{...}` within the string ... or checked in the code.
+The file with translations does not indicate whether the string is an f-string or not. This can be deduced by the presence of `{...}` within the string or checked in the code.
 
-Translator cannot replace an ordinary string with an f-string, because (s)he touches only what is between the quotes. If, however, translator decides to exclude data that is interpolated, (s)he may do so by simply omitting the parts between braces; this is still a valid (though pointless) f-string.
+If translation includes braces, and if all pairs of braces contain parsable Python expressions, Trubar will add the f-prefix to the string, *unless* this is explicitly disabled in configuration file.
+
+If the original string is an f-string, the prefix is not removed even if the translation does not contain any braces.
 
 #### Plural forms
 
@@ -176,13 +176,12 @@ Do whatever you want. Translate the first line or multiple lines ... it won't ch
 
 Future versions of `trubar` may improve in this respect.
 
-### Known quirks
+### Configuration options
 
-Trubar currently assumes that no string is the same as a function within the same namespace. This would cause problems.
+By default, Trubar reads configuration from trubar-config.yaml in the current directory. Another file can be given by `--conf` option.
 
-```python
-s = "foo"
+Configuration file can contain the following options:
 
-def foo(x):
-    t = "bar"
-```
+- **auto-quotes**: if *true* (default) Trubar will detect single (double) quotes in translations and change the enclosing quotes to double (single), when necessary.
+- **auto-prefix**: if *true* (default) Trubar adds the f-prefix if translation looks like an f-string, but the original string was not an f-string
+- **encoding**: define a text file encoding different from locale.

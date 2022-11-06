@@ -170,6 +170,42 @@ class C:
     g = ''
 """)
 
+    def test_auto_quote_and_prefix(self):
+        module = """
+print("Foo")
+print('Bar')
+print("2 + 2 = 4")
+print("baz")
+print("kux")
+print(r"bing")
+print('''f x g''')
+print(\"\"\"f y g\"\"\")
+"""
+
+        tree = cst.parse_module(module)
+        translations = {"Foo": 'Fo"o',
+                        "Bar": "B'ar",
+                        "2 + 2 = 4": "2 + 2 = {2 + 2}",
+                        "baz": "ba{}z",
+                        "kux": "ku{--}x",
+                        "bing": "b{2 + 2}ng",
+                        "f x g": "f ' g",
+                        "f y g": 'f " g',
+                        }
+        translator = StringTranslator(translations, tree)
+        translated = tree.visit(translator)
+        trans_source = tree.code_for_node(translated)
+        self.assertEqual(trans_source, """
+print('Fo"o')
+print("B'ar")
+print(f"2 + 2 = {2 + 2}")
+print("ba{}z")
+print("ku{--}x")
+print(rf"b{2 + 2}ng")
+print('''f ' g''')
+print(\"\"\"f " g\"\"\")
+""")
+
 
 class UtilsTest(unittest.TestCase):
     def test_walk_files(self):

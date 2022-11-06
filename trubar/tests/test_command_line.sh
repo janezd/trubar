@@ -151,6 +151,31 @@ diff errors_structure.txt test_project/errors_structure.txt
 rm errors_structure.txt
 
 echo
+echo "Read configuration"
+echo "... default is to turn strings to f-strings when needed"
+print_run 'trubar translate -s test_project -d test_translations test_project/newly_braced.yaml -q'
+set +e
+grep -q "a = f\"A {'clas' + 's'} attribute\"" test_translations/__init__.py
+if [ $? -ne 0 ]
+then
+    echo "Invalid initial configuration? String was not changed to f-string"
+    exit 1
+fi
+set -e
+
+echo "... but this can be disabled in settings"
+print_run 'trubar --conf test_project/config-no-prefix.yaml translate -s test_project -d test_translations test_project/newly_braced.yaml -q'
+set +e
+grep -q "a = \"A {'clas' + 's'} attribute\"" test_translations/__init__.py
+if [ $? -ne 0 ]
+then
+    echo "Configuration not read? String was still changed to f-string"
+    exit 1
+fi
+set -e
+rm -r test_translations
+
+echo
 echo "Done."
 )
 
