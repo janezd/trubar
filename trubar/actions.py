@@ -1,5 +1,4 @@
 import os
-import locale
 import re
 import shutil
 import sys
@@ -23,7 +22,7 @@ SomeString = Union[cst.SimpleString, cst.FormattedString]
 
 re_single_quote = re.compile(r"(^|[^\\])'")
 re_double_quote = re.compile(r'(^|[^\\])"')
-re_braced = re.compile(r"\{(?P<expr>[^}]+)\}")
+re_braced = re.compile(r"\{.+\}")
 
 
 @dataclass
@@ -164,17 +163,20 @@ class StringTranslator(cst.CSTTransformer):
             elif quote == '"' and has_double and not has_single:
                 quote = "'"
 
-        prefix = node.prefix
-        braced = re_braced.findall(translation)
-        if config.auto_prefix and braced and "f" not in prefix:
+        if config.auto_prefix \
+                and "f" not in node.prefix \
+                and re_braced.search(translation):
             try:
-                [cst.parse_expression(expr) for expr in braced]
+                new_node = cst.parse_expression(
+                    f'f{node.prefix}{quote}{translation}{quote}')
             except cst.ParserSyntaxError:
                 pass
             else:
-                prefix += "f"
+                if any(isinstance(part, cst.FormattedStringExpression)
+                       for part in new_node.parts):
+                    return new_node
 
-        return cst.parse_expression(f'{prefix}{quote}{translation}{quote}')
+        return cst.parse_expression(f'{node.prefix}{quote}{translation}{quote}')
 
     visit_ClassDef = push_context
     visit_FunctionDef = push_context

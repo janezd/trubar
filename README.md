@@ -121,9 +121,9 @@ The quotes used in YAML are unrelated to quotes used in the corresponding Python
 
 The file with translations does not indicate whether the string is an f-string or not. This can be deduced by the presence of `{...}` within the string or checked in the code.
 
-If translation includes braces, and if all pairs of braces contain parsable Python expressions, Trubar will add the f-prefix to the string, *unless* this is explicitly disabled in configuration file.
+Even if the original is not an f-string, the translation can be an f-string, for instance to add plural forms. Trubar checks whether the translation can be parsed as an f-string and the result contains any expressions, it will add the f-prefix to the string. If in particular project this would lead to false positives, it can be explicitly disabled (but project-wide!) in configuration file.
 
-If the original string is an f-string, the prefix is not removed even if the translation does not contain any braces.
+If the original string is an f-string, the prefix is never removed.
 
 #### Plural forms
 
