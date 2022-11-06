@@ -67,6 +67,7 @@ then
   echo "Not dry."
   exit 1
 fi
+rm -r si_translations_copy
 
 echo
 echo "Merge"
@@ -173,6 +174,20 @@ then
     exit 1
 fi
 set -e
+rm -r test_translations
+
+echo "... test auto import"
+print_run 'trubar --conf test_project/config-auto-import.yaml translate -s test_project -d test_translations test_project/translations.yaml -q'
+if [[ $(cat test_translations/submodule/apples.py) != "from foo.bar.localization import plurals  # pylint: disable=wrong-import-order
+
+print(\"Pomaranče\")" ]]
+then
+    echo "Auto import is missing or wrong:"
+    echo ""
+    cat test_translations/submodule/apples.py
+    echo ""
+    exit 1
+fi
 rm -r test_translations
 
 echo

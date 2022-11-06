@@ -127,28 +127,22 @@ If the original string is an f-string, the prefix is never removed.
 
 #### Plural forms
 
-Trubar does not care. You can use f-strings, so it's up to you. There is however a cute way of doing it.
+Trubar does not care. You can use f-strings, so it's up to you. There is however a neat way of doing it, in particular if the original source already does a part of the job. And Trubar already offers some assistance here.
 
-The source file must import the localization functions, e.g.
-
-```python
-from utils.localization import *
-```
-
-It is crucial to import all functions from the file. The file contains the following function
+Suppose there is a module, say `utils.localization` with a function
 
 ```python
 def pl(n, forms):
     return forms.split("|")[n % 100 != 1]
 ```
 
-The function is used to formulated plural forms in English messages, as in
+This takes care of plural forms in, for instance English, where one would then use strings like
 
 ```python
 text += f"<p>{len(table)} {pl(len(table), 'instance|instances')}"
 ```
 
-In Slovenian translation, we add another function to that file
+In Slovenian translation, we have another function in module `util.localization`:
 
 ```python
 def plsi(n, forms):
@@ -162,13 +156,15 @@ def plsi(n, forms):
     return forms[3]
 ```
 
-We then simply translate the message to
+and translate the message to
 
 ```python
 text += f"<p>{len(table)} {plsi(len(table), 'primer|primer|primeri|primerov')}"
 ```
 
-Replacing the original `pl` function with one that would work for Slovenian plurals would break any untranslated messages. Having the Slovenian function and keeping the original call `pl(len(table), 'instance|instances')` would give index error when `len(table) % 100` is not 1 or 2.
+Note that this requires importing `plsi` from `utils.localization`. This can be accomplished in two ways. Maybe the original file already imported *all* functions (`from util.localization import *`). If not (for instance because wildcard imports are considered ugly), we can configure Trubar to add `from util.localization import plsi` to all files. See the section about Configuration.
+
+If the original source does not use plural forms but translator would like to use them, (s)he can do so by configuring Trubar to add the necessary import and calling the corresponding function(s). Trubar will turn simple strings to f-strings if necessary. This however needs picking into source code and may break if the code changes. Furthermore, computing the number that is needed to decide the plural form within the f-string itself may be inconvenient.
 
 #### Multiline strings
 
@@ -184,4 +180,5 @@ Configuration file can contain the following options:
 
 - **auto-quotes**: if *true* (default) Trubar will detect single (double) quotes in translations and change the enclosing quotes to double (single), when necessary.
 - **auto-prefix**: if *true* (default) Trubar adds the f-prefix if translation looks like an f-string, but the original string was not an f-string
+- **auto-import**: a line that is added at the top of each translated file. The intended use is to import the necessary functions for plural forms, e.g. `from utils.localization import plsi, plsi_sz`.
 - **encoding**: define a text file encoding different from locale.

@@ -1,0 +1,1 @@
+auto-import: "from foo.bar.localization import plurals  # pylint: disable=wrong-import-order"

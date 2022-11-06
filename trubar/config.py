@@ -11,6 +11,8 @@ class Configuration:
     auto_quotes: bool = True
     auto_prefix: bool = True
 
+    auto_import: str = ""
+
     encoding: str = \
         "locale" if sys.version_info >= (3, 10) \
         else locale.getpreferredencoding(False)

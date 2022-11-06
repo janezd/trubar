@@ -248,6 +248,8 @@ def translate(translations: MsgDict,
         trans_source = tree.code_for_node(translated)
         if not dry_run:
             with open(transname, "wt", encoding=config.encoding) as f:
+                if config.auto_import:
+                    f.write(config.auto_import + "\n\n")
                 f.write(trans_source)
 
 
