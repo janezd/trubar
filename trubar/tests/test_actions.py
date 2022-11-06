@@ -175,6 +175,8 @@ class C:
 print("Foo")
 print('Bar')
 print("2 + 2 = 4")
+print("2 + 3 = 4")
+print("2 + 4 = 4")
 print("baz")
 print("kux")
 print(r"bing")
@@ -186,6 +188,8 @@ print(\"\"\"f y g\"\"\")
         translations = {"Foo": 'Fo"o',
                         "Bar": "B'ar",
                         "2 + 2 = 4": "2 + 2 = {2 + 2}",
+                        "2 + 3 = 4": "2 + 3 = {}",
+                        "2 + 4 = 4": "2 + 4 = {not an expression}",
                         "baz": "ba{}z",
                         "kux": "ku{--}x",
                         "bing": "b{2 + 2}ng",
@@ -199,9 +203,11 @@ print(\"\"\"f y g\"\"\")
 print('Fo"o')
 print("B'ar")
 print(f"2 + 2 = {2 + 2}")
+print("2 + 3 = {}")
+print("2 + 4 = {not an expression}")
 print("ba{}z")
 print("ku{--}x")
-print(rf"b{2 + 2}ng")
+print(fr"b{2 + 2}ng")
 print('''f ' g''')
 print(\"\"\"f " g\"\"\")
 """)
