@@ -13,6 +13,8 @@ class Configuration:
 
     auto_import: str = ""
 
+    static_files: str = "static"
+
     encoding: str = \
         "locale" if sys.version_info >= (3, 10) \
         else locale.getpreferredencoding(False)

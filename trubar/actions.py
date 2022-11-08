@@ -233,7 +233,10 @@ def translate(translations: MsgDict,
         path, _ = os.path.split(transname)
         if not dry_run:
             os.makedirs(path, exist_ok=True)
-        if not name.endswith(".py") or name not in translations:
+        if not name.endswith(".py") \
+                or not _any_translations(translations.get(name, {})):
+            if not quiet and name.endswith(".py"):
+                print(f"Copying {name} (no translations)")
             if not dry_run:
                 shutil.copyfile(fullname, transname)
             continue
@@ -251,6 +254,17 @@ def translate(translations: MsgDict,
                 if config.auto_import:
                     f.write(config.auto_import + "\n\n")
                 f.write(trans_source)
+    if not dry_run \
+            and config.static_files and os.path.exists(config.static_files):
+        if not quiet:
+            print(f"Copying files from '{config.static_files}'")
+        shutil.copytree(config.static_files, destination, dirs_exist_ok=True)
+
+
+def _any_translations(translations: MsgDict):
+    return any(isinstance(msg, str) for msg in translations.values()) \
+        or any(_any_translations(sub)
+               for sub in translations.values() if isinstance(sub, dict))
 
 
 def missing(translations: MsgDict,
