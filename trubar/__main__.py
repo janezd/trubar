@@ -8,6 +8,15 @@ from trubar.actions import \
 from trubar.config import config
 
 
+def check_dir_exists(path):
+    if not os.path.isdir(path):
+        if os.path.exists(path):
+            print(f"{path} is not a directory.")
+        else:
+            print(f"Directory {path} does not exist.")
+        sys.exit(2)
+
+
 def main() -> None:
     def add_parser(name, desc):
         subparser = subparsers.add_parser(name, help=desc, description=desc)
@@ -102,10 +111,12 @@ def main() -> None:
     pattern = args.pattern
 
     if args.action == "collect":
+        check_dir_exists(args.source)
         messages = collect(args.source, pattern, quiet=args.quiet)
         dump(messages, args.output)
 
     elif args.action == "translate":
+        check_dir_exists(args.source)
         if not (args.source or args.dest) and not args.dry_run:
             argparser.error("at least one of --source and --dest required")
         if args.source == args.dest:

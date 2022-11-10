@@ -42,6 +42,23 @@ print_run 'trubar collect -s test_project -o messages.yaml -p submodule -q'
 diff messages.yaml test_project/submodule_messages.yaml
 rm messages.yaml
 
+echo "... invalid source dir"
+set +e
+print_run 'trubar collect -s test_project/__init__.py -o messages.yaml -q' /dev/null
+if [ $? -eq 0 ]
+then
+    echo "Non-zero exit code expected"
+    exit 1
+fi
+print_run 'trubar collect -s test_project_not -o messages.yaml -q' /dev/null
+if [ $? -eq 0 ]
+then
+    echo "Non-zero exit code expected"
+    exit 1
+fi
+set -e
+
+
 echo
 echo "Translate"
 cp -r si_translations si_translations_copy
