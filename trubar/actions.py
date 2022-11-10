@@ -199,6 +199,7 @@ class StringTranslator(cst.CSTTransformer):
 
 def walk_files(path: str, pattern: str = "", *, skip_nonpython: bool
                ) -> Iterator[Tuple[str, str]]:
+    path = os.path.normpath(path)
     for dirpath, _, files in sorted(os.walk(path)):
         for name in sorted(files):
             if skip_nonpython and (name.startswith("test_")
