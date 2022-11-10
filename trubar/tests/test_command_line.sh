@@ -93,6 +93,32 @@ then
 fi
 rm -r si_translations_copy
 
+echo "... verbosity"
+print_run 'trubar translate -s test_project -d si_translations_half test_project/translations.yaml -n -v 3' verb_output
+diff verb_output verbosity_outputs/3.txt
+print_run 'trubar translate -s test_project -d si_translations_half test_project/translations.yaml -n -v 2' verb_output
+diff verb_output verbosity_outputs/2.txt
+print_run 'trubar translate -s test_project -d si_translations_half test_project/translations.yaml -n -v 1' verb_output
+diff verb_output verbosity_outputs/1.txt
+print_run 'trubar translate -s test_project -d si_translations_half test_project/translations.yaml -n -v 0' verb_output
+if [[ ! -z $(cat verb_output) ]] ; then
+    echo "not quiet"
+    exit 1
+fi
+print_run 'trubar translate -s test_project -d si_translations_half test_project/translations.yaml -n -q' verb_output
+if [[ ! -z $(cat verb_output) ]] ; then
+    echo "not quiet"
+    exit 1
+fi
+print_run 'trubar translate -s test_project -d si_translations test_project/translations.yaml -n -v 1' verb_output
+diff verb_output verbosity_outputs/nochanges.txt
+print_run 'trubar translate -s test_project -d si_translations test_project/translations.yaml -n -v 0' verb_output
+if [[ ! -z $(cat verb_output) ]] ; then
+    echo "not quiet"
+    exit 1
+fi
+rm verb_output
+
 echo
 echo "Merge"
 cp test_project/translations.yaml translations-copy.yaml
