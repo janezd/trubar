@@ -13,7 +13,7 @@ class Configuration:
 
     auto_import: str = ""
 
-    static_files: str = "static"
+    static_files: str = ""
 
     encoding: str = \
         "locale" if sys.version_info >= (3, 10) \
@@ -47,6 +47,17 @@ class Configuration:
                     print(f"Invalid value for '{name}': {value}")
                     sys.exit(4)
             setattr(self, name, value)
+
+        self.__check_static_files()
+
+    def set_static_files(self, static):
+        self.static_files = static
+        self.__check_static_files()
+
+    def __check_static_files(self):
+        if self.static_files and not os.path.exists(self.static_files):
+            print(f"Static files not found in {self.static_files}")
+            sys.exit(4)
 
 
 config = Configuration()

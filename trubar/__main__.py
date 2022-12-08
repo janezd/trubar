@@ -41,6 +41,9 @@ def main() -> None:
     parser.add_argument(
         "-s", "--source", metavar="source-dir", help="source path")
     parser.add_argument(
+        "--static", metavar="static-files-dir",
+        help="directory with static files to copy")
+    parser.add_argument(
         "-q", "--quiet", action="store_true",
         help="supress intermediary outputs")
     parser.add_argument(
@@ -107,6 +110,8 @@ def main() -> None:
             argparser.error("at least one of --source and --dest required")
         if args.source == args.dest:
             argparser.error("source and destination must not be the same")
+        if args.static:
+            config.set_static_files(args.static)
         messages = load(args.translations)
         translate(messages, args.source, args.dest, pattern,
                   quiet=args.quiet, dry_run=args.dry_run)

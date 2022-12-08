@@ -4,7 +4,7 @@ import sys
 import shutil
 import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from trubar.config import Configuration
 
@@ -50,7 +50,7 @@ class ConfigTest(unittest.TestCase):
 
     def test_invalid_type(self):
         # At the time of writing, Configuration had only bool and str settings,
-        # which can never fail on conversion. To raach that code in test, we
+        # which can never fail on conversion. To reach that code in test, we
         # imagine setting that can
         # Data classes do not support inheritance, so we patch the tested method
         # into a new class.
@@ -63,6 +63,19 @@ class ConfigTest(unittest.TestCase):
         config = ConfigurationWithInt()
         self.prepare("foo: bar")
         self.assertRaises(ExitCalled, config.update_from_file, self.fn)
+
+    @patch("builtins.print")
+    def test_static_files(self, _):
+        config = Configuration()
+        self.assertEqual(config.static_files, "")
+
+        self.prepare("static-files: static_files_lan")
+        with patch("os.path.exists", Mock(return_value=False)):
+            self.assertRaises(ExitCalled, config.update_from_file, self.fn)
+
+        with patch("os.path.exists", Mock(return_value=True)):
+            config.update_from_file(self.fn)
+            self.assertEqual(config.static_files, "static_files_lan")
 
 
 if __name__ == "__main__":
