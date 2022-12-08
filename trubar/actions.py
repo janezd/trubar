@@ -255,8 +255,7 @@ def translate(translations: MsgDict,
                 if config.auto_import:
                     f.write(config.auto_import + "\n\n")
                 f.write(trans_source)
-    if not dry_run \
-            and config.static_files and os.path.exists(config.static_files):
+    if not dry_run and config.static_files:
         if not quiet:
             print(f"Copying files from '{config.static_files}'")
         shutil.copytree(config.static_files, destination, dirs_exist_ok=True)

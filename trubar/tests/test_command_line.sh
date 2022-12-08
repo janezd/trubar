@@ -59,8 +59,15 @@ diff test_translations/__init__.py test_project/__init__.py
 diff -r si_translations si_translations_copy
 rm -r test_translations
 
+echo "... with static files"
+mkdir test_translations
+cp test_project/__init__.py test_translations/__init__.py
+print_run 'trubar translate -s test_project -d test_translations test_project/translations.yaml -p submodule -q --static static_files_lan'
+diff -r test_translations/a static_files_lan/a
+rm -r test_translations
+
 echo "... dry run"
-print_run 'trubar translate -s test_project -d test_translations test_project/translations.yaml -q -n'
+print_run 'trubar translate -s test_project -d test_translations test_project/translations.yaml -q -n --static static_files_lan'
 diff -r si_translations si_translations_copy
 if [ -d test_translations ]
 then
