@@ -1,30 +1,26 @@
 import dataclasses
 import os
-import sys
 import shutil
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
 from trubar.config import Configuration
+from trubar.tests import TestBase, ExitCalled
 
 
-class ExitCalled(Exception):
-    pass
-
-
-class ConfigTest(unittest.TestCase):
+class ConfigTest(TestBase):
     @classmethod
     def setUpClass(cls) -> None:
+        super().setUpClass()
         cls.tmpdir = tempfile.mkdtemp()
         cls.fn = os.path.join(cls.tmpdir, "test.yaml")
-        cls.old_exit = sys.exit
-        sys.exit = Mock(side_effect=ExitCalled)
+        cls.patch_exit()
 
     @classmethod
     def tearDownClass(cls) -> None:
         shutil.rmtree(cls.tmpdir)
-        sys.exit = cls.old_exit
+        super().tearDownClass()
 
     def prepare(self, s):
         with open(self.fn, "w") as f:
