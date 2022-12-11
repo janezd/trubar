@@ -42,6 +42,23 @@ print_run 'trubar collect -s test_project -o messages.yaml -p submodule -q'
 diff messages.yaml test_project/submodule_messages.yaml
 rm messages.yaml
 
+echo "... invalid source dir"
+set +e
+print_run 'trubar collect -s test_project/__init__.py -o messages.yaml -q' /dev/null
+if [ $? -eq 0 ]
+then
+    echo "Non-zero exit code expected"
+    exit 1
+fi
+print_run 'trubar collect -s test_project_not -o messages.yaml -q' /dev/null
+if [ $? -eq 0 ]
+then
+    echo "Non-zero exit code expected"
+    exit 1
+fi
+set -e
+
+
 echo
 echo "Translate"
 cp -r si_translations si_translations_copy
@@ -75,6 +92,32 @@ then
   exit 1
 fi
 rm -r si_translations_copy
+
+echo "... verbosity"
+print_run 'trubar translate -s test_project -d si_translations_half test_project/translations.yaml -n -v 3' verb_output
+diff verb_output verbosity_outputs/3.txt
+print_run 'trubar translate -s test_project -d si_translations_half test_project/translations.yaml -n -v 2' verb_output
+diff verb_output verbosity_outputs/2.txt
+print_run 'trubar translate -s test_project -d si_translations_half test_project/translations.yaml -n -v 1' verb_output
+diff verb_output verbosity_outputs/1.txt
+print_run 'trubar translate -s test_project -d si_translations_half test_project/translations.yaml -n -v 0' verb_output
+if [[ ! -z $(cat verb_output) ]] ; then
+    echo "not quiet"
+    exit 1
+fi
+print_run 'trubar translate -s test_project -d si_translations_half test_project/translations.yaml -n -q' verb_output
+if [[ ! -z $(cat verb_output) ]] ; then
+    echo "not quiet"
+    exit 1
+fi
+print_run 'trubar translate -s test_project -d si_translations test_project/translations.yaml -n -v 1' verb_output
+diff verb_output verbosity_outputs/nochanges.txt
+print_run 'trubar translate -s test_project -d si_translations test_project/translations.yaml -n -v 0' verb_output
+if [[ ! -z $(cat verb_output) ]] ; then
+    echo "not quiet"
+    exit 1
+fi
+rm verb_output
 
 echo
 echo "Merge"

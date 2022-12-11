@@ -13,9 +13,11 @@ from trubar.config import config
 
 
 __all__ = ["collect", "translate", "merge", "missing", "template",
-           "load", "dump"]
+           "load", "dump",
+           "ReportCritical", "ReportUpdates", "ReportTranslations", "ReportAll"]
 
-MsgDict = Dict[str, Union["MsgDict", str]]
+
+MsgDict = Dict[str, Union["MsgDict", str, bool, None]]
 NamespaceNode = Union[cst.Module, cst.FunctionDef, cst.ClassDef]
 SomeString = Union[cst.SimpleString, cst.FormattedString]
 
@@ -222,43 +224,102 @@ def collect(source: str, pattern: str, *, quiet=False) -> MsgDict:
     return collector.contexts[0]
 
 
+ReportCritical, ReportUpdates, ReportTranslations, ReportAll = range(4)
+
+
 def translate(translations: MsgDict,
               source: Optional[str],
               destination: Optional[str],
               pattern: str,
-              *, quiet=False, dry_run=False) -> None:
+              *, verbosity=ReportUpdates, dry_run=False) -> None:
+    def write_if_different(data, dest):
+        try:
+            with open(dest, encoding=config.encoding) as f:
+                diff = 1 if f.read() != data else 0
+        except OSError:
+            diff = 2
+        if diff and not dry_run:
+            with open(dest, "wt", encoding=config.encoding) as f:
+                f.write(data)
+        return diff
+
+    def copy_if_different(src, dest):
+        with open(src, encoding=config.encoding) as f:
+            return write_if_different(f.read(), dest)
+
+    if dry_run:
+        def noop(*_, **_1):
+            pass
+
+        copyfile = copytree = makedirs = noop
+
+    else:
+        copyfile, copytree = shutil.copyfile, shutil.copytree
+        makedirs = os.makedirs
+
+    any_reports = False
+
+    def report(s, level):
+        nonlocal any_reports
+        if level <= verbosity:
+            any_reports = True
+            print(s)
+
     source = source or "."
     destination = destination or "."
     for name, fullname in walk_files(source, pattern, skip_nonpython=False):
         transname = os.path.join(destination, name)
         path, _ = os.path.split(transname)
-        if not dry_run:
-            os.makedirs(path, exist_ok=True)
-        if not name.endswith(".py") \
-                or not _any_translations(translations.get(name, {})):
-            if not quiet and name.endswith(".py"):
-                print(f"Copying {name} (no translations)")
-            if not dry_run:
-                shutil.copyfile(fullname, transname)
+        makedirs(path, exist_ok=True)
+
+        # Copy anything that is not Python
+        if not name.endswith(".py"):
+            copyfile(fullname, transname)
             continue
 
-        if not quiet:
-            print(f"Translating {name}")
-        with open(fullname, encoding=config.encoding) as f:
-            orig_source = f.read()
-            tree = cst.parse_module(orig_source)
-        translator = StringTranslator(translations[name], tree)
-        translated = tree.visit(translator)
-        trans_source = tree.code_for_node(translated)
-        if not dry_run:
-            with open(transname, "wt", encoding=config.encoding) as f:
-                if config.auto_import:
-                    f.write(config.auto_import + "\n\n")
-                f.write(trans_source)
+        # Copy files without translations
+        if not _any_translations(translations.get(name, {})):
+            diff = copy_if_different(fullname, transname)
+            if diff:
+                report(f"Copying {name} (no translations)", ReportAll)
+            else:
+                report(f"Skipping {name} (unchanged; no translations)",
+                       ReportAll)
+            continue
+
+        # Parse original sources
+        try:
+            with open(fullname, encoding=config.encoding) as f:
+                orig_source = f.read()
+                tree = cst.parse_module(orig_source)
+        except Exception:
+            print(f"Error when parsing {name}")
+            raise
+
+        # Replace with translations, produce new sources
+        try:
+            translator = StringTranslator(translations[name], tree)
+            translated = tree.visit(translator)
+            trans_source = tree.code_for_node(translated)
+        except Exception:
+            print(f"Error when inserting translations into {name}")
+            raise
+        if config.auto_import:
+            trans_source = config.auto_import + "\n\n" + trans_source
+
+        diff = write_if_different(trans_source, transname)
+        if diff == 0:
+            report(f"Skipping {name} (unchanged)", ReportTranslations)
+        elif diff == 1:
+            report(f"Updating translated {name}", ReportUpdates)
+        else:  # diff == 2
+            report(f"Creating translated {name}", ReportUpdates)
     if not dry_run and config.static_files:
-        if not quiet:
-            print(f"Copying files from '{config.static_files}'")
-        shutil.copytree(config.static_files, destination, dirs_exist_ok=True)
+        report(f"Copying files from '{config.static_files}'", ReportAll)
+        copytree(config.static_files, destination, dirs_exist_ok=True)
+
+    if not any_reports and verbosity > ReportCritical:
+        print("No changes.")
 
 
 def _any_translations(translations: MsgDict):

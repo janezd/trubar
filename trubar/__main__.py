@@ -4,8 +4,18 @@ import sys
 
 from trubar.actions import \
     load, dump, \
-    collect, translate, merge, missing, template
+    collect, translate, merge, missing, template, \
+    ReportCritical
 from trubar.config import config
+
+
+def check_dir_exists(path):
+    if not os.path.isdir(path):
+        if os.path.exists(path):
+            print(f"{path} is not a directory.")
+        else:
+            print(f"Directory {path} does not exist.")
+        sys.exit(2)
 
 
 def main() -> None:
@@ -46,6 +56,9 @@ def main() -> None:
     parser.add_argument(
         "-q", "--quiet", action="store_true",
         help="supress intermediary outputs")
+    parser.add_argument(
+        "-v", "--verbosity", type=int, choices=range(4), default=1,
+        help="verbosity (0=quiet, 1=updates, 2=translations, 3=all")
     parser.add_argument(
         "-n", "--dry-run", action="store_true",
         help="don't write anything; perform a trial run to check the structure"
@@ -102,19 +115,22 @@ def main() -> None:
     pattern = args.pattern
 
     if args.action == "collect":
+        check_dir_exists(args.source)
         messages = collect(args.source, pattern, quiet=args.quiet)
         dump(messages, args.output)
 
     elif args.action == "translate":
+        check_dir_exists(args.source)
         if not (args.source or args.dest) and not args.dry_run:
             argparser.error("at least one of --source and --dest required")
         if args.source == args.dest:
             argparser.error("source and destination must not be the same")
         if args.static:
             config.set_static_files(args.static)
+        verbosity = ReportCritical if args.quiet else args.verbosity
         messages = load(args.translations)
         translate(messages, args.source, args.dest, pattern,
-                  quiet=args.quiet, dry_run=args.dry_run)
+                  verbosity=verbosity, dry_run=args.dry_run)
 
     elif args.action == "merge":
         additional = load(args.new_translations)
