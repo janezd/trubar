@@ -1,3 +1,4 @@
+import dataclasses
 import os
 import re
 import shutil
@@ -374,6 +375,52 @@ def template(existing: MsgDict, pattern: str = "") -> MsgDict:
         elif trans is not False:
             new_template[msg] = None
     return new_template
+
+
+@dataclasses.dataclass
+class Stat:
+    translated: int = 0
+    kept: int = 0
+    untranslated: int = 0
+    programmatic: int = 0
+
+    def __add__(self, other):
+        return Stat(self.translated + other.translated,
+                    self.kept + other.kept,
+                    self.untranslated + other.untranslated,
+                    self.programmatic + other.programmatic)
+
+    def __abs__(self):
+        return self.translated + self.kept \
+               + self.untranslated + self.programmatic
+
+    @classmethod
+    def collect_stat(cls, messages):
+        values = list(messages.values())
+        return sum((cls.collect_stat(value)
+                    for value in values if isinstance(value, dict)),
+                   start=Stat(sum(isinstance(val, str) for val in values),
+                              values.count(True),
+                              values.count(None),
+                              values.count(False)))
+
+
+def stat(messages: MsgDict, pattern: str):
+    if pattern:
+        messages = {k: v for k, v in messages.items() if pattern in k}
+    stats = Stat.collect_stat(messages)
+    all = abs(stats)
+    if not all:
+        print("No messages")
+    else:
+        print(f"Total messages: {abs(stats)}")
+        print()
+        print(f"{'Translated:':16}{stats.translated:5}{100 * stats.translated / all:8.1f}%")
+        print(f"{'Kept unchanged:':16}{stats.kept:5}{100 * stats.kept / all:8.1f}%")
+        print(f"{'Programmatic:':16}{stats.programmatic:5}{100 * stats.programmatic / all:8.1f}%")
+        print(f"{'Total completed:':16}{all - stats.untranslated:5}{100 - 100 * stats.untranslated / all:8.1f}%")
+        print()
+        print(f"{'Untranslated:':16}{stats.untranslated:5}{100 * stats.untranslated / all:8.1f}%")
 
 
 def load(filename: str) -> MsgDict:
