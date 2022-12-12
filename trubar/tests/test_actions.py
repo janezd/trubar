@@ -6,7 +6,7 @@ from contextlib import redirect_stdout
 import libcst as cst
 
 from trubar.actions import \
-    StringCollector, StringTranslator, walk_files, check_sanity, \
+    StringCollector, StringTranslator, Stat, walk_files, check_sanity, \
     collect, missing, merge, template
 
 import trubar.tests.test_module
@@ -463,6 +463,32 @@ def `m` not in target structure
         )
         self.assertEqual(template(messages, "f"), {"f": {"g": None}})
         self.assertEqual(template(messages, "g"), {})
+
+    def test_stat(self):
+        messages = {
+            "a": "b",
+            "c": "not-none",
+            "d": False,
+            "e": True,
+            "class `foo`": {
+                "g": "h",
+                "i": False,
+                "def `j`": {
+                    "a": None},
+                "k": True},
+            "def `k`": {"p": None},
+            "m": None,
+            "class `p`": {"q": "r"},
+            "s": None,
+            "def `t`": {"u": "v"}
+        }
+        stat = Stat.collect_stat(messages)
+        self.assertEqual(stat, Stat(5, 2, 4, 2))
+        self.assertEqual(abs(stat), 13)
+
+        stat = Stat.collect_stat({})
+        self.assertEqual(stat, Stat(0, 0, 0, 0))
+        self.assertEqual(abs(stat), 0)
 
 
 if __name__ == "__main__":

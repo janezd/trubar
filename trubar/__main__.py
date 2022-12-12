@@ -4,7 +4,7 @@ import sys
 
 from trubar.actions import \
     load, dump, \
-    collect, translate, merge, missing, template, \
+    collect, translate, merge, missing, template, stat, \
     ReportCritical
 from trubar.config import config
 
@@ -105,6 +105,11 @@ def main() -> None:
         "-o", "--output", metavar="output-file", required=True,
         help="missing translations")
 
+    parser = add_parser("stat", "Show statistics about messages in the file")
+    parser.add_argument(
+        "messages", metavar="messages",
+        help="file with messages")
+
     args = argparser.parse_args(sys.argv[1:])
 
     if args.conf:
@@ -151,6 +156,10 @@ def main() -> None:
         messages = load(args.messages) if args.messages else translations
         needed = missing(translations, messages, pattern)
         dump(needed, args.output)
+
+    elif args.action == "stat":
+        messages = load(args.messages)
+        stat(messages, pattern)
 
 
 if __name__ == "__main__":

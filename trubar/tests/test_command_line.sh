@@ -189,6 +189,12 @@ diff template.yaml test_project/template.yaml
 rm template.yaml
 
 echo
+echo "Stat"
+print_run 'trubar stat test_project/translations.yaml' /dev/null
+print_run 'trubar stat test_project/translations.yaml -p submodule' /dev/null
+print_run 'trubar stat test_project/translations.yaml -p nomodule' /dev/null
+
+echo
 echo "Checks for file sanity"
 set +e
 print_run 'trubar missing test_project/bad_structure.yaml -o missing.yaml' errors_structure.txt
