@@ -276,7 +276,8 @@ def translate(translations: MsgDict,
         makedirs(path, exist_ok=True)
 
         # Copy anything that is not Python
-        if not name.endswith(".py") or config.exclude_re.search(fullname):
+        if not name.endswith(".py") \
+                or config.exclude_re and config.exclude_re.search(fullname):
             copyfile(fullname, transname)
             continue
 
