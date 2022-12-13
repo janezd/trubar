@@ -200,22 +200,24 @@ class StringTranslator(cst.CSTTransformer):
         return self.__translate(original_node, updated_node)
 
 
-def walk_files(path: str, pattern: str = "", *, skip_nonpython: bool
+def walk_files(path: str, pattern: str = "", *, select: bool
                ) -> Iterator[Tuple[str, str]]:
     path = os.path.normpath(path)
     for dirpath, _, files in sorted(os.walk(path)):
         for name in sorted(files):
-            if skip_nonpython and (name.startswith("test_")
-                                   or not name.endswith(".py")):
+            if select and not name.endswith(".py"):
                 continue
             name = os.path.join(dirpath, name)
-            if pattern in name:
-                yield name[len(path) + 1:], name
+            keyname = name[len(path) + 1:]
+            if pattern in name and \
+                    not (select and config.exclude_re
+                         and config.exclude_re.search(keyname)):
+                yield keyname, name
 
 
 def collect(source: str, pattern: str, *, quiet=False) -> MsgDict:
     collector = StringCollector()
-    for name, fullname in walk_files(source, pattern, skip_nonpython=True):
+    for name, fullname in walk_files(source, pattern, select=True):
         if not quiet:
             print(f"Parsing {name}")
         with open(fullname, encoding=config.encoding) as f:
@@ -268,13 +270,13 @@ def translate(translations: MsgDict,
 
     source = source or "."
     destination = destination or "."
-    for name, fullname in walk_files(source, pattern, skip_nonpython=False):
+    for name, fullname in walk_files(source, pattern, select=False):
         transname = os.path.join(destination, name)
         path, _ = os.path.split(transname)
         makedirs(path, exist_ok=True)
 
         # Copy anything that is not Python
-        if not name.endswith(".py"):
+        if not name.endswith(".py") or config.exclude_re.search(fullname):
             copyfile(fullname, transname)
             continue
 

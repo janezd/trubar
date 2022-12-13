@@ -73,6 +73,21 @@ class ConfigTest(TestBase):
             config.update_from_file(self.fn)
             self.assertEqual(config.static_files, "static_files_lan")
 
+    def test_exclude(self):
+        config = Configuration()
+        self.assertTrue(config.exclude_re.search("dir/tests/test_something.py"))
+        self.prepare("exclude-pattern: ba?_m")
+        config.update_from_file(self.fn)
+        self.assertFalse(config.exclude_re.search("dir/tests/test_something.py"))
+        self.prepare("exclude-pattern: ")
+        config.update_from_file(self.fn)
+        self.assertIsNone(config.exclude_re)
+
+        config.set_exclude_pattern("tests/test_")
+        self.assertTrue(config.exclude_re.search("dir/tests/test_something.py"))
+        config.set_exclude_pattern("")
+        self.assertIsNone(config.exclude_re)
+
 
 if __name__ == "__main__":
     unittest.main()
