@@ -10,6 +10,7 @@ from trubar.actions import \
     collect, missing, merge, template
 
 import trubar.tests.test_module
+from trubar.config import config
 
 test_module_path = os.path.split(trubar.tests.test_module.__file__)[0]
 
@@ -216,55 +217,82 @@ print(\"\"\"f " g\"\"\")
 class UtilsTest(unittest.TestCase):
     def test_walk_files(self):
         tmp = test_module_path
-        self.assertEqual(
-            set(walk_files(tmp, skip_nonpython=True)),
-            {('bar_module/__init__.py',
-              f'{tmp}/bar_module/__init__.py'),
-             ('bar_module/foo_module/__init__.py',
-              f'{tmp}/bar_module/foo_module/__init__.py'),
-             ('baz_module/__init__.py',
-              f'{tmp}/baz_module/__init__.py'),
-             ('__init__.py',
-              f'{tmp}/__init__.py')}
-        )
-
-        old_path = os.getcwd()
+        old_pattern = config.exclude_pattern
         try:
-            os.chdir(tmp)
+            config.set_exclude_pattern("")
             self.assertEqual(
-                set(walk_files(".", skip_nonpython=True)),
+                set(walk_files(tmp, select=True)),
                 {('bar_module/__init__.py',
-                  './bar_module/__init__.py'),
+                  f'{tmp}/bar_module/__init__.py'),
                  ('bar_module/foo_module/__init__.py',
-                  './bar_module/foo_module/__init__.py'),
+                  f'{tmp}/bar_module/foo_module/__init__.py'),
                  ('baz_module/__init__.py',
-                  './baz_module/__init__.py'),
+                  f'{tmp}/baz_module/__init__.py'),
                  ('__init__.py',
-                  './__init__.py')}
+                  f'{tmp}/__init__.py')}
+            )
+
+            old_path = os.getcwd()
+            try:
+                os.chdir(tmp)
+                self.assertEqual(
+                    set(walk_files(".", select=True)),
+                    {('bar_module/__init__.py',
+                      './bar_module/__init__.py'),
+                     ('bar_module/foo_module/__init__.py',
+                      './bar_module/foo_module/__init__.py'),
+                     ('baz_module/__init__.py',
+                      './baz_module/__init__.py'),
+                     ('__init__.py',
+                      './__init__.py')}
+                )
+                self.assertEqual(
+                    set(walk_files(".", "bar", select=True)),
+                    {('bar_module/__init__.py',
+                      './bar_module/__init__.py'),
+                     ('bar_module/foo_module/__init__.py',
+                      './bar_module/foo_module/__init__.py')}
+                )
+            finally:
+                os.chdir(old_path)
+
+            self.assertEqual(
+                set(walk_files(tmp, select=False)),
+                {('bar_module/__init__.py',
+                  f'{tmp}/bar_module/__init__.py'),
+                 ('bar_module/foo_module/__init__.py',
+                  f'{tmp}/bar_module/foo_module/__init__.py'),
+                 ('baz_module/__init__.py',
+                  f'{tmp}/baz_module/__init__.py'),
+                 ('__init__.py',
+                  f'{tmp}/__init__.py'),
+                 ('baz_module/not-python.js',
+                  f'{tmp}/baz_module/not-python.js')}
+            )
+
+            config.set_exclude_pattern("b?r_")
+            self.assertEqual(
+                set(walk_files(tmp, select=False)),
+                {('bar_module/__init__.py',
+                  f'{tmp}/bar_module/__init__.py'),
+                 ('bar_module/foo_module/__init__.py',
+                  f'{tmp}/bar_module/foo_module/__init__.py'),
+                 ('baz_module/__init__.py',
+                  f'{tmp}/baz_module/__init__.py'),
+                 ('__init__.py',
+                  f'{tmp}/__init__.py'),
+                 ('baz_module/not-python.js',
+                  f'{tmp}/baz_module/not-python.js')}
             )
             self.assertEqual(
-                set(walk_files(".", "bar", skip_nonpython=True)),
-                {('bar_module/__init__.py',
-                  './bar_module/__init__.py'),
-                 ('bar_module/foo_module/__init__.py',
-                  './bar_module/foo_module/__init__.py')}
+                set(walk_files(tmp, select=True)),
+                {('baz_module/__init__.py',
+                  f'{tmp}/baz_module/__init__.py'),
+                 ('__init__.py',
+                  f'{tmp}/__init__.py')}
             )
         finally:
-            os.chdir(old_path)
-
-        self.assertEqual(
-            set(walk_files(tmp, skip_nonpython=False)),
-            {('bar_module/__init__.py',
-              f'{tmp}/bar_module/__init__.py'),
-             ('bar_module/foo_module/__init__.py',
-              f'{tmp}/bar_module/foo_module/__init__.py'),
-             ('baz_module/__init__.py',
-              f'{tmp}/baz_module/__init__.py'),
-             ('__init__.py',
-              f'{tmp}/__init__.py'),
-             ('baz_module/not-python.js',
-              f'{tmp}/baz_module/not-python.js')}
-        )
+            config.set_exclude_pattern(old_pattern)
 
     def test_check_sanity(self):
         # unexpected namespace

@@ -1,10 +1,10 @@
 import sys
 import os
+import re
 import locale
 import dataclasses
 
 import yaml
-
 
 @dataclasses.dataclass
 class Configuration:
@@ -15,9 +15,14 @@ class Configuration:
 
     static_files: str = ""
 
+    exclude_pattern: str = "tests/test_"
+
     encoding: str = \
         "locale" if sys.version_info >= (3, 10) \
         else locale.getpreferredencoding(False)
+
+    def __post_init__(self):
+        self.__update_exclude_re()
 
     def update_from_file(self, filename):
         if not os.path.exists(filename):
@@ -42,17 +47,32 @@ class Configuration:
                 sys.exit(4)
             else:
                 try:
-                    value = field.type(value)
+                    if value is None:
+                        value = field.type()
+                    else:
+                        value = field.type(value)
                 except ValueError:
                     print(f"Invalid value for '{name}': {value}")
                     sys.exit(4)
             setattr(self, name, value)
 
+        self.__update_exclude_re()
         self.__check_static_files()
 
     def set_static_files(self, static):
         self.static_files = static
         self.__check_static_files()
+
+    def set_exclude_pattern(self, pattern):
+        self.exclude_pattern = pattern
+        self.__update_exclude_re()
+
+    def __update_exclude_re(self):
+        self.exclude_pattern = self.exclude_pattern.strip()
+        if self.exclude_pattern:
+            self.exclude_re = re.compile(self.exclude_pattern)
+        else:
+            self.exclude_re = None
 
     def __check_static_files(self):
         if self.static_files and not os.path.exists(self.static_files):
