@@ -2,34 +2,29 @@ import dataclasses
 import os
 import re
 import shutil
-import sys
-from dataclasses import dataclass
-from typing import Union, Iterator, Tuple, Dict, List, Optional
+from typing import Union, Iterator, Tuple, List, Optional, NamedTuple
 
-import yaml
 import libcst as cst
 from libcst.metadata import ParentNodeProvider
 
+from trubar.messages import MsgNode, MsgDict
 from trubar.config import config
 
 
 __all__ = ["collect", "translate", "merge", "missing", "template",
-           "load", "dump",
            "ReportCritical", "ReportUpdates", "ReportTranslations", "ReportAll"]
 
 
-MsgDict = Dict[str, Union["MsgDict", str, bool, None]]
 NamespaceNode = Union[cst.Module, cst.FunctionDef, cst.ClassDef]
 SomeString = Union[cst.SimpleString, cst.FormattedString]
 
 
 re_single_quote = re.compile(r"(^|[^\\])'")
 re_double_quote = re.compile(r'(^|[^\\])"')
-re_braced = re.compile(r"\{.+\}")
+re_braced = re.compile(r"{.+}")
 
 
-@dataclass
-class State:
+class State(NamedTuple):
     node: NamespaceNode
     name: str
 
@@ -76,7 +71,7 @@ class StringCollector(cst.CSTVisitor):
         state = self.function_stack.pop()
         context = self.contexts.pop()
         if context:
-            self.contexts[-1][state.name] = context
+            self.contexts[-1][state.name] = MsgNode(context)
 
     def is_useless_string(self, node: cst.CSTNode) -> bool:
         # This is primarily to exclude docstrings: exclude strings if they
@@ -108,14 +103,14 @@ class StringCollector(cst.CSTVisitor):
         lq = len(node.quote)
         if not self.is_useless_string(node):
             text = self.module.code_for_node(node)[len(node.prefix) + lq:-lq]
-            self.contexts[-1][text] = None
+            self.contexts[-1][text] = MsgNode(None)
         return False  # don't visit anything within an f-string!
 
     def visit_SimpleString(self, node: cst.SimpleString) -> bool:
         lq = len(node.quote)
         s = self.module.code_for_node(node)[len(node.prefix) + lq:-lq]
         if s and not self.is_useless_string(node):
-            self.contexts[-1][s] = None
+            self.contexts[-1][s] = MsgNode(None)
         return False  # doesn't matter, there's nothing down there anyway
 
 
@@ -136,7 +131,8 @@ class StringTranslator(cst.CSTTransformer):
 
     def push_context(self, node: NamespaceNode) -> None:
         key = f"{prefix_for_node(node)}`{node.name.value}`"
-        self.context_stack.append(self.context.get(key, {}))
+        space = self.context[key].value if key in self.context else {}
+        self.context_stack.append(space)
 
     def pop_context(self) -> None:
         self.context_stack.pop()
@@ -152,7 +148,9 @@ class StringTranslator(cst.CSTTransformer):
             return updated_node
         lq = len(node.quote)
         original = self.module.code_for_node(node)[len(node.prefix) + lq:-lq]
-        translation = self.context.get(original)
+        if original not in self.context:
+            return updated_node
+        translation = self.context[original].value
         if translation in (None, False, True):
             return updated_node
         assert isinstance(translation, str)
@@ -175,6 +173,7 @@ class StringTranslator(cst.CSTTransformer):
             except cst.ParserSyntaxError:
                 pass
             else:
+                assert isinstance(new_node, cst.FormattedString)
                 if any(isinstance(part, cst.FormattedStringExpression)
                        for part in new_node.parts):
                     return new_node
@@ -282,7 +281,8 @@ def translate(translations: MsgDict,
             continue
 
         # Copy files without translations
-        if not _any_translations(translations.get(name, {})):
+        if name not in translations or \
+                not _any_translations(translations[name].value):
             diff = copy_if_different(fullname, transname)
             if diff:
                 report(f"Copying {name} (no translations)", ReportAll)
@@ -302,7 +302,7 @@ def translate(translations: MsgDict,
 
         # Replace with translations, produce new sources
         try:
-            translator = StringTranslator(translations[name], tree)
+            translator = StringTranslator(translations[name].value, tree)
             translated = tree.visit(translator)
             trans_source = tree.code_for_node(translated)
         except Exception:
@@ -327,30 +327,33 @@ def translate(translations: MsgDict,
 
 
 def _any_translations(translations: MsgDict):
-    return any(isinstance(msg, str) for msg in translations.values()) \
-        or any(_any_translations(sub)
-               for sub in translations.values() if isinstance(sub, dict))
+    return any(isinstance(value, (str, bool))
+               or isinstance(value, dict) and _any_translations(value)
+               for value in (msg.value for msg in translations.values()))
 
 
 def missing(translations: MsgDict,
             messages: MsgDict,
             pattern: str = "") -> MsgDict:
-    no_translations = {}
+    no_translations: MsgDict = {}
     for obj, orig in messages.items():
         if pattern not in obj:
             continue
         trans = translations.get(obj)
         if trans is None:
             no_translations[obj] = orig  # orig may be `None` or a whole subdict
-        elif isinstance(orig, dict):
-            if submiss := missing(translations[obj], orig, ""):
-                no_translations[obj] = submiss
+        elif isinstance(orig.value, dict):
+            if submiss := missing(translations[obj].value, orig.value, ""):
+                no_translations[obj] = MsgNode(submiss,
+                                               trans.comments or orig.comments)
+        elif trans.value is None:
+            no_translations[obj] = trans  # this keeps comments
     return no_translations
 
 
 def merge(additional: MsgDict, existing: MsgDict, pattern: str = "",
           path: str = "") -> MsgDict:
-    rejected = {}
+    rejected: MsgDict = {}
     for msg, trans in additional.items():
         if pattern not in msg:
             continue
@@ -358,25 +361,25 @@ def merge(additional: MsgDict, existing: MsgDict, pattern: str = "",
         if msg not in existing:
             print(f"{npath} not in target structure")
             rejected[msg] = trans
-        elif isinstance(trans, dict):
-            subreject = merge(trans, existing[msg], "", npath)
+        elif isinstance(trans.value, dict):
+            subreject = merge(trans.value, existing[msg].value, "", npath)
             if subreject:
-                rejected[msg] = subreject
-        elif trans is not None:
+                rejected[msg] = MsgNode(subreject)
+        elif trans.value is not None:
             existing[msg] = trans
     return rejected
 
 
 def template(existing: MsgDict, pattern: str = "") -> MsgDict:
-    new_template = {}
+    new_template: MsgDict = {}
     for msg, trans in existing.items():
         if pattern not in msg:
             continue
-        if isinstance(trans, dict):
-            if subtemplate := template(existing[msg]):
-                new_template[msg] = subtemplate
-        elif trans is not False:
-            new_template[msg] = None
+        if isinstance(trans.value, dict):
+            if subtemplate := template(trans.value):
+                new_template[msg] = MsgNode(subtemplate, trans.comments)
+        elif trans.value is not False:
+            new_template[msg] = MsgNode(None, trans.comments)
     return new_template
 
 
@@ -399,7 +402,7 @@ class Stat:
 
     @classmethod
     def collect_stat(cls, messages):
-        values = list(messages.values())
+        values = [obj.value for obj in messages.values()]
         return sum((cls.collect_stat(value)
                     for value in values if isinstance(value, dict)),
                    start=Stat(sum(isinstance(val, str) for val in values),
@@ -424,53 +427,3 @@ def stat(messages: MsgDict, pattern: str):
         print(f"{'Total completed:':16}{all - stats.untranslated:5}{100 - 100 * stats.untranslated / all:8.1f}%")
         print()
         print(f"{'Untranslated:':16}{stats.untranslated:5}{100 * stats.untranslated / all:8.1f}%")
-
-
-def load(filename: str) -> MsgDict:
-    if not os.path.exists(filename):
-        print(f"File not found: {filename}")
-        sys.exit(2)
-    try:
-        with open(filename, encoding=config.encoding) as f:
-            messages = yaml.load(f, Loader=yaml.Loader)
-    except yaml.YAMLError as exc:
-        print(f"Error while reading file: {exc}")
-        sys.exit(3)
-    if not check_sanity(messages, filename):
-        sys.exit(4)
-    return messages
-
-
-def check_sanity(messages: MsgDict, filename: Optional[str] = None):
-    key_re = re.compile("^((def)|(class)) `\w+`")
-    sane = True
-
-    def fail(msg):
-        nonlocal sane
-        if sane and filename is not None:
-            print(f"Errors in {filename}:")
-        print(msg)
-        sane = False
-
-    def check_sane(messages: MsgDict, path: str):
-        for key, value in messages.items():
-            npath = f"{path}/{key}"
-            if key_re.fullmatch(key) is None:
-                if isinstance(value, dict):
-                    fail(f"{npath}: Unexpectedly a namespace")
-            else:
-                if not isinstance(value, dict):
-                    fail(f"{npath}: Unexpectedly not a namespace")
-                else:
-                    check_sane(value, f"{npath}")
-
-    for key, value in messages.items():
-        if isinstance(value, dict):
-            check_sane(value, key)
-    return sane
-
-
-def dump(messages: MsgDict, filename: str) -> None:
-    with open(filename, "wb") as f:
-        f.write(yaml.dump(messages, indent=4, sort_keys=False,
-                          encoding="utf-8", allow_unicode=True))

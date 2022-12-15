@@ -1,34 +1,35 @@
-import sys
+import os
+import shutil
+import tempfile
 import unittest
-from unittest.mock import Mock
-from contextlib import contextmanager
+
+from trubar.messages import dict_to_msg_nodes, dict_from_msg_nodes
 
 
-class ExitCalled(Exception):
-    pass
-
-
-@contextmanager
-def patched_exit():
-    old_exit = sys.exit
-    sys.exit = Mock(side_effect=ExitCalled)
-    try:
-        yield
-    finally:
-        sys.exit = old_exit
+def yamlized(func):
+    def f(*args, **kwargs):
+        args = [dict_to_msg_nodes(arg) if isinstance(arg, dict) else arg
+                for arg in args]
+        res = func(*args, **kwargs)
+        return dict_from_msg_nodes(res) if isinstance(res, dict) else res
+    return f
 
 
 class TestBase(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.old_exit = None
+    def setUp(self) -> None:
+        super().setUp()
+        self.tmpdir = None
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        if cls.old_exit is not None:
-            sys.exit = cls.old_exit
+    def tearDown(self) -> None:
+        super().tearDown()
+        if self.tmpdir is not None:
+            shutil.rmtree(self.tmpdir)
 
-    @classmethod
-    def patch_exit(cls):
-        cls.old_exit = sys.exit
-        sys.exit = Mock(side_effect=ExitCalled)
+    def prepare_file(self, filename, s):
+        if self.tmpdir is None:
+            self.tmpdir = tempfile.mkdtemp()
+
+        fn = os.path.join(self.tmpdir, filename)
+        with open(fn, "w") as f:
+            f.write(s)
+        return fn

@@ -3,9 +3,9 @@ import os
 import sys
 
 from trubar.actions import \
-    load, dump, \
     collect, translate, merge, missing, template, stat, \
     ReportCritical
+from trubar.messages import load, dump
 from trubar.config import config
 
 

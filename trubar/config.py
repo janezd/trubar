@@ -6,6 +6,7 @@ import dataclasses
 
 import yaml
 
+
 @dataclasses.dataclass
 class Configuration:
     auto_quotes: bool = True
