@@ -1,0 +1,11 @@
+a:
+    b: null
+    e: null
+    f: null
+    def `g`:
+        h: null
+# This class may be left untranslated,
+# depending on whatever
+class `q`:
+    # In particular this one
+    s: null

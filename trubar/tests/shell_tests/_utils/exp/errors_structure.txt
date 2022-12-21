@@ -1,4 +1,4 @@
-Errors in test_project/bad_structure.yaml:
+Errors in bad_structure.yaml:
 module1/class `A`/def `foo`: Unexpectedly not a namespace
 module1/class `A`/def `f`/class `AClass`: Unexpectedly not a namespace
 module1/realy_bad: Unexpectedly a namespace

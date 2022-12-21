@@ -36,4 +36,5 @@ jobs:
       run: |
         export PYTHONDONTWRITEBYTECODE=1
         python -m unittest discover trubar.tests -v
-        . trubar/tests/test_command_line.sh
+        cd trubar/tests
+        ./test_command_line.sh

@@ -1,0 +1,8 @@
+Total messages: 1
+
+Translated:         1   100.0%
+Kept unchanged:     0     0.0%
+Programmatic:       0     0.0%
+Total completed:    1   100.0%
+
+Untranslated:       0     0.0%

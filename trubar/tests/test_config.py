@@ -18,17 +18,21 @@ class ConfigTest(TestBase):
         self.assertTrue(config.auto_prefix)
         self.assertEqual(config.encoding, "cp-1234")
 
-    def test_malformed_file(self):
+    @patch("builtins.print")
+    def test_malformed_file(self, _):
         config = Configuration()
         self.prepare("auto_quotes: false\n\nencoding")
         self.assertRaises(SystemExit, config.update_from_file, self.fn)
 
-    def test_unrecognized_option(self):
+    @patch("builtins.print")
+    def test_unrecognized_option(self, a_print):
         config = Configuration()
         self.prepare("auto_quotes: false\n\nauto_magog: false")
         self.assertRaises(SystemExit, config.update_from_file, self.fn)
+        self.assertIn("auto_magog", a_print.call_args[0][0])
 
-    def test_invalid_type(self):
+    @patch("builtins.print")
+    def test_invalid_type(self, a_print):
         # At the time of writing, Configuration had only bool and str settings,
         # which can never fail on conversion. To reach that code in test, we
         # imagine setting that can
@@ -43,6 +47,7 @@ class ConfigTest(TestBase):
         config = ConfigurationWithInt()
         self.prepare("foo: bar")
         self.assertRaises(SystemExit, config.update_from_file, self.fn)
+        self.assertIn("foo", a_print.call_args[0][0])
 
     @patch("builtins.print")
     def test_static_files(self, _):
