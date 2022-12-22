@@ -9,7 +9,9 @@
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
-ignore=CVS
+ignore=
+
+ignore-paths:.*/((shell_tests)|(test_module)|(test_module_2))/.*
 
 # Pickle collected data for later comparisons.
 persistent=yes
@@ -71,7 +73,7 @@ reports=no
 # respectively contain the number of errors / warnings messages and the total
 # number of statements analyzed. This is used by the global evaluation report
 # (RP0004).
-evaluation=error + warning + refactor + convention
+evaluation=max(0, 0 if fatal else 10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10))
 
 # Template used to display messages. This is a python new-style format string
 # used to format the message information. See doc for all details
@@ -167,7 +169,7 @@ callbacks=cb_,_cb,on_,_on_
 good-names=ex,Run,_,a,c,d,e,i,j,k,m,n,o,p,t,u,v,w,x,y,A,X,Y,M
 
 # Bad variable names which should always be refused, separated by a comma
-bad-names=foo,bar,baz,toto,tutu,tata
+bad-names=
 
 # Colon-delimited sets of names that determine each other's naming style when
 # the name regexes allow several styles.
