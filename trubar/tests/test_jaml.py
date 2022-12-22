@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from trubar import jaml
 from trubar.jaml import LineGenerator
@@ -263,6 +263,17 @@ ghi: jkl
             
             """,
         )
+
+    def test_syntax_errors(self):
+        self.assertRaisesRegex(
+            jaml.JamlError, "Line 1: invalid quoted key", jaml.read, "'''x: y")
+
+        # I don't know how to actually trigger a syntax error in value string;
+        # it's easier to just mock it.
+        with patch("ast.literal_eval", Mock(side_effect=SyntaxError)):
+            self.assertRaisesRegex(
+                jaml.JamlError, "Line 1: invalid quoted value",
+                jaml.read, 'x:"y"')
 
     def test_format_errors(self):
         # This function checks for exact error messages. While this is not
