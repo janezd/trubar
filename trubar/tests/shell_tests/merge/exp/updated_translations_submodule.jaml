@@ -2,16 +2,18 @@ __init__.py:
     class `A`:
         A class attribute: false
         def `f`:
+            default: false
             some/directory: true
             File {x}: Datoteka {x}
-            Not a real file {x + ".bak"}: null
+            Not file {x + ".bak"}: Ne datoteka {x + ".bak"}
+            {"nonsense"}: {"nesmisel"}
     __main__: false
     Please don't run this.: null
     Import it, if you must.: null
-    But rather - don't: null
 submodule/apples.py:
-    class `Oranges`:
-        Orange: null
-        Red: null
+    # Namreč dve.
+    Oranges: Pomaranči
 trash/nothing.py:
-    def `f`: null
+    def `f`:
+        To see here: null
+        , really.: null

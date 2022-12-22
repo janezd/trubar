@@ -11,7 +11,7 @@ __init__.py:
     Please don't run this.: null
     Import it, if you must.: null
 submodule/apples.py:
-    Oranges: Pomaranči
+    Oranges: Pomaranče
 trash/nothing.py:
     def `f`:
         To see here: null

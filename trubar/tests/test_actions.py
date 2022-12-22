@@ -6,11 +6,13 @@ from contextlib import redirect_stdout
 import libcst as cst
 
 from trubar.actions import \
-    StringCollector, StringTranslator, Stat, walk_files, check_sanity, \
+    StringCollector, StringTranslator, Stat, walk_files, \
     collect, missing, merge, template
 
 import trubar.tests.test_module
 from trubar.config import config
+from trubar.messages import dict_from_msg_nodes, dict_to_msg_nodes
+from trubar.tests import yamlized
 
 test_module_path = os.path.split(trubar.tests.test_module.__file__)[0]
 
@@ -22,7 +24,7 @@ class StringCollectorTest(unittest.TestCase):
         tree = cst.metadata.MetadataWrapper(cst.parse_module(s))
         collector.open_module("foo_module")
         tree.visit(collector)
-        return collector.contexts[0]
+        return dict_from_msg_nodes(collector.contexts[0])
 
     def test_simple_string(self):
         msgs = self.collect("""
@@ -84,7 +86,7 @@ class C:
             "'baz': None, 'class `B`': {'baz': None}}}, 'class `C`': {'crux': None}}}")
 
     def test_module_and_walk_and_collect(self):
-        msgs = collect(test_module_path, "", quiet=True)
+        msgs = yamlized(collect)(test_module_path, "", quiet=True)
         self.assertEqual(
             msgs,
             {
@@ -151,7 +153,7 @@ class C:
                         'class `C`': {'crux': ""}}
 
         tree = cst.parse_module(module)
-        translator = StringTranslator(translations, tree)
+        translator = yamlized(StringTranslator)(translations, tree)
         translated = tree.visit(translator)
         trans_source = tree.code_for_node(translated)
         self.assertEqual(trans_source, """
@@ -197,7 +199,7 @@ print(\"\"\"f y g\"\"\")
                         "f x g": "f ' g",
                         "f y g": 'f " g',
                         }
-        translator = StringTranslator(translations, tree)
+        translator = yamlized(StringTranslator)(translations, tree)
         translated = tree.visit(translator)
         trans_source = tree.code_for_node(translated)
         self.assertEqual(trans_source, """
@@ -294,61 +296,6 @@ class UtilsTest(unittest.TestCase):
         finally:
             config.set_exclude_pattern(old_pattern)
 
-    def test_check_sanity(self):
-        # unexpected namespace
-        with io.StringIO() as buf, redirect_stdout(buf):
-            self.assertFalse(check_sanity(
-                {"a": "b", "def `f`": {"x": {"y": "z"}}}))
-            self.assertEqual(
-                buf.getvalue(),
-                "def `f`/x: Unexpectedly a namespace\n")
-        # def is not a namespace
-        with io.StringIO() as buf, redirect_stdout(buf):
-            self.assertFalse(check_sanity(
-                {"module": {"a": "b", "def `f`": {"def `x`": "y"}}}))
-            self.assertEqual(
-                buf.getvalue(),
-                "module/def `f`/def `x`: Unexpectedly not a namespace\n")
-        # class is not a namespace
-        with io.StringIO() as buf, redirect_stdout(buf):
-            self.assertFalse(check_sanity(
-                {"module": {"a": "b", "def `f`": {"class `x`": "y"}}}))
-            self.assertEqual(
-                buf.getvalue(),
-                "module/def `f`/class `x`: Unexpectedly not a namespace\n")
-        # everything OK
-        with io.StringIO() as buf, redirect_stdout(buf):
-            self.assertTrue(check_sanity(
-                {"module": {"a": "b", "def `f`": {"class `x`": {"z": "t"}}}}))
-            self.assertEqual(
-                buf.getvalue(),
-                "")
-        # check entire structure, even when there are problems
-        with io.StringIO() as buf, redirect_stdout(buf):
-            self.assertFalse(check_sanity(
-                {"module1": {
-                    "a": "b",
-                    "def `f`": "t",
-                    "class `x`": {
-                        "z": "t",
-                        "m": {"x": False}
-                    },
-                    "t": "o"},
-                 "module2": {
-                    "def `g`": None,
-                    "x": "y"},
-                 "module3": {
-                    "a": "b"}
-                },
-                "somefile"))
-            self.assertEqual(
-                buf.getvalue(),
-                """Errors in somefile:
-module1/def `f`: Unexpectedly not a namespace
-module1/class `x`/m: Unexpectedly a namespace
-module2/def `g`: Unexpectedly not a namespace
-""")
-
 
 class ActionsTest(unittest.TestCase):
     # collect is already tested above
@@ -387,7 +334,7 @@ class ActionsTest(unittest.TestCase):
             "def `t`": {"u": None}
         }
         self.assertEqual(
-            missing(translations, messages),
+            yamlized(missing)(translations, messages),
             {"c": None,
              "class `f`": {"j": None},
              "def `k`": {"p": None},
@@ -405,13 +352,13 @@ class ActionsTest(unittest.TestCase):
             "bar": {"foo_1": {"b": "c"}}
         }
         self.assertEqual(
-            missing({}, messages, "foo"),
+            yamlized(missing)({}, messages, "foo"),
             {"foo_1": {"foo_2": "x", "a": {"b": "c"}},
              "2_foo": {"a": {"b": "c"}}}
         )
 
     def test_merge(self):
-        existing = {
+        existing = dict_to_msg_nodes({
             "a": None,
             "c": "not-none",
             "d": "x",
@@ -426,8 +373,8 @@ class ActionsTest(unittest.TestCase):
             "class `p`": {"q": None},
             "s": None,
             "def `t`": {"u": "v"}
-        }
-        additional = {
+        })
+        additional = dict_to_msg_nodes({
             "a": "b",
             "c": None,
             "d": False,
@@ -441,13 +388,13 @@ class ActionsTest(unittest.TestCase):
             "k": None,
             "def `m`": {"u": "v"},
             "class `p`": {"q": "r"}
-        }
+        })
         with io.StringIO() as buf, redirect_stdout(buf):
             removed = merge(additional, existing)
             printed = buf.getvalue()
 
         self.assertEqual(
-            existing,
+            dict_from_msg_nodes(existing),
             {"a": "b",
              "c": "not-none",
              "d": False,
@@ -463,6 +410,7 @@ class ActionsTest(unittest.TestCase):
              "def `t`": {"u": "v"}
             }
         )
+        removed = dict_from_msg_nodes(removed)
         self.assertEqual(set(removed), {"class `f`", "k", "def `m`"})
         self.assertEqual(set(removed["class `f`"]), {"x", "j"})
         self.assertEqual(printed,
@@ -482,15 +430,15 @@ def `m` not in target structure
             "j": { "k": False, "l": {"m": False, "n": False}}
         }
         self.assertEqual(
-            template(messages),
+            yamlized(template)(messages),
            {"a": None,
             "d": None,
             "e": None,
             "f": { "g": None}
         }
         )
-        self.assertEqual(template(messages, "f"), {"f": {"g": None}})
-        self.assertEqual(template(messages, "g"), {})
+        self.assertEqual(yamlized(template)(messages, "f"), {"f": {"g": None}})
+        self.assertEqual(yamlized(template)(messages, "g"), {})
 
     def test_stat(self):
         messages = {
@@ -510,11 +458,11 @@ def `m` not in target structure
             "s": None,
             "def `t`": {"u": "v"}
         }
-        stat = Stat.collect_stat(messages)
+        stat = yamlized(Stat.collect_stat)(messages)
         self.assertEqual(stat, Stat(5, 2, 4, 2))
         self.assertEqual(abs(stat), 13)
 
-        stat = Stat.collect_stat({})
+        stat = yamlized(Stat.collect_stat)({})
         self.assertEqual(stat, Stat(0, 0, 0, 0))
         self.assertEqual(abs(stat), 0)
 

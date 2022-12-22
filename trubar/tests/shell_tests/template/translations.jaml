@@ -12,6 +12,9 @@ a:
             n: false
             o: false
 p: false
+# This class may be left untranslated,
+# depending on whatever
 class `q`:
     r: false
+    # In particular this one
     s: true
