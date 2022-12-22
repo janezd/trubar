@@ -180,7 +180,7 @@ def dump(d, indent=""):
             return f"{dumpb(s)}\n{indent}"
         if ":" in s or s[0] in " #\"'|":
             return repr(s)
-        return repr(s)[1:-1]  # replace \n characters with `"\n"` etc.
+        return s
 
     def dumpval(s):
         trans = {True: "true", False: "false", None: "null",
@@ -191,7 +191,7 @@ def dump(d, indent=""):
             return dumpb(s)
         if _is_quoted_value(s):  # if value would be recognized as quoted...
             return repr(s)
-        return repr(s)[1:-1]  # replace \n characters with `"\n"` etc.
+        return s
 
     res = ""
     for key, node in d.items():

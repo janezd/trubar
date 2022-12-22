@@ -148,6 +148,19 @@ abc:
                 comments=None)}
         )
 
+    def test_read_backslashes(self):
+        text = r"""
+fo\no1: ba\nr
+fo\x: ba\x
+"ra\nbit": "za\njec"
+"ra\\nbot": "za\\njoc"
+"""
+        msgs = jaml.read(text)
+        self.assertEqual(msgs, {r'fo\no1': MsgNode(value=r'ba\nr', comments=None),
+ r'fo\x': MsgNode(value=r'ba\x', comments=None),
+ 'ra\nbit': MsgNode(value='za\njec', comments=None),
+ r'ra\nbot': MsgNode(value=r'za\njoc', comments=None)})
+
     def test_read_quotes(self):
         text = """
 foo1: "bar 
@@ -345,6 +358,10 @@ a/b.py:
     yada: true
 class `A`: false
 """[1:])
+
+    def test_backslashes(self):
+        self.assertEqual(jaml.dump({r"a\nb": MsgNode(r"c\nd")}).strip(),
+                         r"a\nb: c\nd")
 
     def test_dump_quotes(self):
         self.assertEqual(jaml.dump({"'foo'": MsgNode("'asdf'")}),
