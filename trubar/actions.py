@@ -327,7 +327,7 @@ def translate(translations: MsgDict,
 
 
 def _any_translations(translations: MsgDict):
-    return any(isinstance(value, (str, bool))
+    return any(isinstance(value, str)
                or isinstance(value, dict) and _any_translations(value)
                for value in (msg.value for msg in translations.values()))
 
@@ -352,17 +352,21 @@ def missing(translations: MsgDict,
 
 
 def merge(additional: MsgDict, existing: MsgDict, pattern: str = "",
-          path: str = "") -> MsgDict:
+          path: str = "", print_rejections=True) -> MsgDict:
     rejected: MsgDict = {}
     for msg, trans in additional.items():
         if pattern not in msg:
             continue
         npath = path + "/" * bool(path) + msg
         if msg not in existing:
-            print(f"{npath} not in target structure")
-            rejected[msg] = trans
+            if trans.value and (not isinstance(trans.value, dict)
+                                or _any_translations(trans.value)):
+                if print_rejections:
+                    print(f"{npath} not in target structure")
+                rejected[msg] = trans
         elif isinstance(trans.value, dict):
-            subreject = merge(trans.value, existing[msg].value, "", npath)
+            subreject = merge(trans.value, existing[msg].value, "", npath,
+                              print_rejections=print_rejections)
             if subreject:
                 rejected[msg] = MsgNode(subreject)
         elif trans.value is not None:

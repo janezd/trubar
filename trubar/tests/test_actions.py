@@ -390,7 +390,8 @@ class ActionsTest(unittest.TestCase):
                 "k": True},
             "k": None,
             "def `m`": {"u": "v"},
-            "class `p`": {"q": "r"}
+            "class `p`": {"q": "r"},
+            "def `no_trans`": {"x": None, "y": False}
         })
         with io.StringIO() as buf, redirect_stdout(buf):
             removed = merge(additional, existing)
@@ -414,14 +415,19 @@ class ActionsTest(unittest.TestCase):
             }
         )
         removed = dict_from_msg_nodes(removed)
-        self.assertEqual(set(removed), {"class `f`", "k", "def `m`"})
+        self.assertEqual(set(removed), {"class `f`", "def `m`"})
         self.assertEqual(set(removed["class `f`"]), {"x", "j"})
         self.assertEqual(printed,
                          """class `f`/j not in target structure
 class `f`/x not in target structure
-k not in target structure
 def `m` not in target structure
 """)
+
+        with io.StringIO() as buf, redirect_stdout(buf):
+            merge(additional, existing, print_rejections=False)
+            printed = buf.getvalue()
+            self.assertEqual(printed, "")
+
 
     def test_template(self):
         messages = {
