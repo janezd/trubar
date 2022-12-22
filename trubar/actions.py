@@ -165,8 +165,8 @@ class StringTranslator(cst.CSTTransformer):
                 quote = "'"
 
         if config.auto_prefix \
-                and "f" not in node.prefix \
-                and re_braced.search(translation):
+                and "f" not in node.prefix and not re_braced.search(original) \
+                and re_braced.search(translation) :
             try:
                 new_node = cst.parse_expression(
                     f'f{node.prefix}{quote}{translation}{quote}')

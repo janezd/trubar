@@ -185,6 +185,7 @@ print("kux")
 print(r"bing")
 print('''f x g''')
 print(\"\"\"f y g\"\"\")
+print("just {braces}, not an f-string!")
 """
 
         tree = cst.parse_module(module)
@@ -198,6 +199,7 @@ print(\"\"\"f y g\"\"\")
                         "bing": "b{2 + 2}ng",
                         "f x g": "f ' g",
                         "f y g": 'f " g',
+                        "just {braces}, not an f-string!": "samo {oklepaji}!"
                         }
         translator = yamlized(StringTranslator)(translations, tree)
         translated = tree.visit(translator)
@@ -213,6 +215,7 @@ print("ku{--}x")
 print(fr"b{2 + 2}ng")
 print('''f ' g''')
 print(\"\"\"f " g\"\"\")
+print("samo {oklepaji}!")
 """)
 
 
