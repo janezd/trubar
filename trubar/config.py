@@ -69,6 +69,8 @@ class Configuration:
         self.__update_exclude_re()
 
     def __update_exclude_re(self):
+        # This function is called from (post)init
+        # pylint: disable=attribute-defined-outside-init
         self.exclude_pattern = self.exclude_pattern.strip()
         if self.exclude_pattern:
             self.exclude_re = re.compile(self.exclude_pattern)
