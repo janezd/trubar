@@ -79,7 +79,7 @@ def main() -> None:
         help="output file; if omitted, existing file will updated")
     parser.add_argument(
         "-r", "--rejected", metavar="rejected-file", default=None,
-        help="file for rejected translations")
+        help="file for rejected translations (if any)")
     parser.add_argument(
         "-n", "--dry-run", action="store_true",
         help="don't change translations file, just check the structure"
@@ -140,10 +140,11 @@ def main() -> None:
     elif args.action == "merge":
         additional = load(args.new_translations)
         existing = load(args.pot)
-        rejected = merge(additional, existing, pattern)
+        rejected = merge(additional, existing, pattern,
+                         print_rejections=bool(args.rejected))
         if not args.dry_run:
             dump(existing, args.output or args.pot)
-        if args.rejected:
+        if args.rejected and rejected:
             dump(rejected, args.rejected)
 
     elif args.action == "template":

@@ -1,4 +1,3 @@
 __init__.py/class `A`/def `f`/def `default` not in target structure
-__init__.py/class `A`/def `f`/extra message not in target structure
 __init__.py/def `extranamespace` not in target structure
 trash/nothing.py/f not in target structure

@@ -3,7 +3,6 @@ __init__.py:
         def `f`:
             def `default`:
                 a: b
-            extra message: null
     def `extranamespace`:
         with: something
 trash/nothing.py:
