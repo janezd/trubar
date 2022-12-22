@@ -8,6 +8,7 @@ from trubar.tests import TestBase
 
 class ConfigTest(TestBase):
     def prepare(self, s):
+        # pylint: disable=attribute-defined-outside-init
         self.fn = self.prepare_file("test.yaml", s)
 
     def test_proper_file(self):
