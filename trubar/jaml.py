@@ -131,7 +131,10 @@ def readlines(lines):
             if mo is None:
                 raise error("invalid quoted key")
             key, value = mo.group("key", "value")
-            key = ast.literal_eval(key)
+            try:
+                key = ast.literal_eval(key)
+            except SyntaxError as exc:
+                error(f"invalid quoted key: {exc}")
             value = value.strip()
         # Key is normal
         else:
@@ -148,7 +151,10 @@ def readlines(lines):
             # value is quoted
             elif _is_quoted_value(value):
                 # unescape quotes
-                value = ast.literal_eval(value)
+                try:
+                    value = ast.literal_eval(value)
+                except SyntaxError as exc:
+                    error(f"invalid quoted value: {exc}")
             else:
                 value = {"true": True, "false": False, "null": None
                          }.get(value, value)
