@@ -71,7 +71,7 @@ def readlines(lines):
                 if indent < block_indent:
                     linegen.put_back()
                     break
-                elif block_indent == 0 and line == "|||":
+                if block_indent == 0 and line == "|||":
                     break
             block += line[block_indent:] + "\n"
         return block.strip("\n")

@@ -13,7 +13,7 @@ class TestUtils(unittest.TestCase):
     @patch("builtins.print")
     def test_check_dir_exists(self, print_):
         check_dir_exists(test_module_path)
-        print_.assert_not_called
+        print_.assert_not_called()
 
         self.assertRaises(
             SystemExit, check_dir_exists,

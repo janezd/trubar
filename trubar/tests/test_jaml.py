@@ -311,7 +311,7 @@ ghi: jkl
     @patch("trubar.jaml.read")
     def test_readfile(self, read):
         jaml.readfile(jaml.__file__)
-        with open(jaml.__file__) as f:
+        with open(jaml.__file__, encoding="utf-8") as f:
             read.assert_called_with(f.read())
 
 
@@ -369,7 +369,6 @@ class `A`: false
                     MsgNode(
                        value={ "def `f`": MsgNode({
                            "a\nb\nc": MsgNode("abc"),
-                           "abc": MsgNode("a\nb\nc"),
                            "abc": MsgNode("a\n" + "b" * 100),
                            "foo": MsgNode(False),
                            "def": MsgNode("a\n" + "b" * 100),

@@ -7,12 +7,12 @@ from trubar.messages import dict_to_msg_nodes, dict_from_msg_nodes
 
 
 def yamlized(func):
-    def f(*args, **kwargs):
+    def yamlized_func(*args, **kwargs):
         args = [dict_to_msg_nodes(arg) if isinstance(arg, dict) else arg
                 for arg in args]
         res = func(*args, **kwargs)
         return dict_from_msg_nodes(res) if isinstance(res, dict) else res
-    return f
+    return yamlized_func
 
 
 class TestBase(unittest.TestCase):
@@ -30,6 +30,6 @@ class TestBase(unittest.TestCase):
             self.tmpdir = tempfile.mkdtemp()
 
         fn = os.path.join(self.tmpdir, filename)
-        with open(fn, "w") as f:
+        with open(fn, "w", encoding="utf-8") as f:
             f.write(s)
         return fn
