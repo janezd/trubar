@@ -178,7 +178,7 @@ def dump(d, indent=""):
     def dumpkey_msg(s):
         if "\n" in s:
             return f"{dumpb(s)}\n{indent}"
-        if ":" in s or s[0] in " #\"'|":
+        if ":" in s or s[0] in " #\"'|" or s[-1] == " ":
             return repr(s)
         return s
 
@@ -189,7 +189,9 @@ def dump(d, indent=""):
             return trans[s]
         if "\n" in s[1:-1] and len(s) > 80:
             return dumpb(s)
-        if _is_quoted_value(s):  # if value would be recognized as quoted...
+        # if value would be recognized as quoted, it must be quoted
+        # leading or trailing spaces also require quoting
+        if _is_quoted_value(s) or s[0] == " " or s[-1] == " ":
             return repr(s)
         return s
 

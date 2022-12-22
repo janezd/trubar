@@ -371,6 +371,12 @@ class `A`: false
         self.assertEqual(jaml.dump({"'foo": MsgNode("asdf'")}),
                          """\"'foo": asdf'\n""")
 
+    def test_dump_spaces_in_value(self):
+        self.assertEqual(jaml.dump({"foo": MsgNode("bar ")}),
+                         "foo: 'bar '\n")
+        self.assertEqual(jaml.dump({"foo": MsgNode(" bar")}),
+                         "foo: ' bar'\n")
+
     def test_quoting_keys(self):
         self.assertEqual(jaml.dump({"| ": MsgNode(True)}),
                          "'| ': true\n")
@@ -378,6 +384,8 @@ class `A`: false
                          "'# ': true\n")
         self.assertEqual(jaml.dump({" x": MsgNode(True)}),
                          "' x': true\n")
+        self.assertEqual(jaml.dump({"x ": MsgNode(True)}),
+                         "'x ': true\n")
         self.assertEqual(jaml.dump({" x: y": MsgNode(True)}),
                          "' x: y': true\n")
 
