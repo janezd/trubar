@@ -327,7 +327,7 @@ def translate(translations: MsgDict,
 
 
 def _any_translations(translations: MsgDict):
-    return any(isinstance(value, (str, bool))
+    return any(isinstance(value, str)
                or isinstance(value, dict) and _any_translations(value)
                for value in (msg.value for msg in translations.values()))
 
