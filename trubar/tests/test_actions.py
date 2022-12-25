@@ -1,3 +1,4 @@
+import re
 import io
 import os
 import unittest
@@ -7,7 +8,7 @@ import libcst as cst
 
 from trubar.actions import \
     StringCollector, StringTranslator, Stat, walk_files, \
-    collect, missing, merge, template
+    collect, missing, merge, template, TranslationError
 
 import trubar.tests.test_module
 from trubar.config import config
@@ -217,6 +218,13 @@ print('''f ' g''')
 print(\"\"\"f " g\"\"\")
 print("samo {oklepaji}!")
 """)
+
+    def test_syntax_error(self):
+        tree = cst.parse_module("print('foo')")
+        translator = yamlized(StringTranslator)({"foo": 'bar\nbaz'}, tree)
+        self.assertRaisesRegex(
+            TranslationError,
+            re.compile(".*foo.*bar.*", re.DOTALL), tree.visit, translator)
 
 
 class UtilsTest(unittest.TestCase):
