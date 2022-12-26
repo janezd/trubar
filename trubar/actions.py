@@ -114,6 +114,10 @@ class StringCollector(cst.CSTVisitor):
         return False  # doesn't matter, there's nothing down there anyway
 
 
+class TranslationError(Exception):
+    pass
+
+
 class StringTranslator(cst.CSTTransformer):
     def __init__(self, context: MsgDict, module: cst.Module):
         super().__init__()
@@ -178,7 +182,17 @@ class StringTranslator(cst.CSTTransformer):
                        for part in new_node.parts):
                     return new_node
 
-        return cst.parse_expression(f'{node.prefix}{quote}{translation}{quote}')
+        try:
+            return cst.parse_expression(f'{node.prefix}{quote}{translation}{quote}')
+        except cst.ParserSyntaxError:
+            if "\n" in translation and len(quote) != 3:
+                unescaped = " Unescaped \\n?"
+            else:
+                unescaped = ""
+            raise TranslationError(
+                f'\nProbable syntax error in translation.{unescaped}\n'
+                f'Original: {original}\n'
+                f'Translation: {translation}') from None
 
     visit_ClassDef = push_context
     visit_FunctionDef = push_context
