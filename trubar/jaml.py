@@ -1,4 +1,3 @@
-import ast
 import re
 
 
@@ -125,22 +124,25 @@ def readlines(lines):
             value = line.lstrip().lstrip(":").strip()
         # Key is quoted
         elif sline[0] in "\"'":
+            q = sline[0]
             mo = re.match(
-                r"(?P<key>(?P<q>[\"'])?.*?[^\\](?P=q))\s*:\s*(?P<value>.*)",
+                rf"{q}(?P<key>([^{q}]|({q}{q}))*?){q}\s*:\s+(?P<value>.*)",
                 sline)
             if mo is None:
                 raise error("invalid quoted key")
             key, value = mo.group("key", "value")
-            try:
-                key = ast.literal_eval(key)
-            except SyntaxError as exc:
-                error(f"invalid quoted key: {exc}")
+            key = key.replace(2 * q, q)
             value = value.strip()
         # Key is normal
         else:
-            key, delim, value = sline.partition(":")
-            if delim != ":":
-                raise error("colon expected")
+            mo = re.match(r"(.*?):(\s+|$)(.*)", sline)
+            if mo is None:
+                if ":" in sline:
+                    raise error("colon at the end of the key should be "
+                                "followed by a space or a new line")
+                else:
+                    raise error("key followed by colon expected")
+            key, _, value = mo.groups()
             value = value.strip()
 
         # Leaves
@@ -150,11 +152,7 @@ def readlines(lines):
                 value = read_block(indent, value[1:])
             # value is quoted
             elif _is_quoted_value(value):
-                # unescape quotes
-                try:
-                    value = ast.literal_eval(value)
-                except SyntaxError as exc:
-                    error(f"invalid quoted value: {exc}")
+                value = value[1:-1]
             else:
                 value = {"true": True, "false": False, "null": None
                          }.get(value, value)
@@ -184,8 +182,9 @@ def dump(d, indent=""):
     def dumpkey_msg(s):
         if "\n" in s:
             return f"{dumpb(s)}\n{indent}"
-        if ":" in s or s[0] in " #\"'|" or s[-1] == " ":
-            return repr(s)
+        if ": " in s or s[0] in " #\"'|" or s[-1] == " ":
+            q = '"' if s[0] == "'" else "'"
+            return f"{q}{s.replace(q, 2 * q)}{q}"
         return s
 
     def dumpval(s):
@@ -198,7 +197,8 @@ def dump(d, indent=""):
         # if value would be recognized as quoted, it must be quoted
         # leading or trailing spaces also require quoting
         if _is_quoted_value(s) or s[0] == " " or s[-1] == " ":
-            return repr(s)
+            q = '"' if s[0] == "'" else "'"
+            return q + s + q
         return s
 
     res = ""
@@ -213,10 +213,4 @@ def dump(d, indent=""):
 
 
 def _is_quoted_value(value):
-    # value is quoted (it begins and ends with the same quote
-    # and contains no unescaped quotes of the same kind, because
-    # **string with unescaped quotes cannot be a quoted string**
-    return len(value) > 1 \
-        and (q := value[0]) in "\"'" \
-        and value[-1] == q and value[-2] != "\\" \
-        and not re.search(fr"[^\\]{q}", value[1:-1])
+    return len(value) > 1 and value[0] in "\"'" and value[-1] == value[0]
