@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 from trubar import jaml
 from trubar.jaml import LineGenerator
@@ -148,41 +148,58 @@ abc:
                 comments=None)}
         )
 
-    def test_read_backslashes(self):
-        text = r"""
-fo\no1: ba\nr
-fo\x: ba\x
-"ra\nbit": "za\njec"
-"ra\\nbot": "za\\njoc"
-"""
-        msgs = jaml.read(text)
-        self.assertEqual(msgs, {r'fo\no1': MsgNode(value=r'ba\nr', comments=None),
- r'fo\x': MsgNode(value=r'ba\x', comments=None),
- 'ra\nbit': MsgNode(value='za\njec', comments=None),
- r'ra\nbot': MsgNode(value=r'za\njoc', comments=None)})
-
-    def test_read_quotes(self):
+    def test_read_quotes_in_values(self):
         text = """
 foo1: "bar 
 foo2: bar" 
 foo3: "bar" 
-foo4: "ba\"r" 
+foo4: "ba"r" 
 foo5: 'bar 
 foo6: bar' 
 foo7: 'bar' 
-foo8: 'ba\'r' 
-foo9: 'ba\"r' 
+foo8: 'ba'r' 
+foo9: 'ba"r' 
 foo10: "bar' 
 foo11: "bar' 
-foo12: "ba\\"r" 
-foo13: 'ba\\'r' 
+foo12: "ba"r" 
+foo13: 'ba'r'
+foo14: 'ba'r '
 """
         msgs = jaml.read(text)
         self.assertEqual([node.value for node in msgs.values()],
-                         ['"bar', 'bar"', 'bar', '"ba"r"',
-                          "'bar", "bar'", "bar", "'ba'r'",
+                         ['"bar', 'bar"', 'bar', 'ba"r',
+                          "'bar", "bar'", "bar", "ba'r",
                           'ba"r', "\"bar'", "\"bar'",
-                          'ba"r', "ba'r"])
+                          'ba"r', "ba'r", "ba'r "])
+
+    def test_read_quotes_in_keys(self):
+        text = """
+1bar": foo2
+"2bar": foo3
+"3ba""r": foo4
+4bar': foo6
+'5bar': foo7
+'6ba''r': foo8
+"7ba""r": foo12
+'8ba''r': foo13
+"""
+        msgs = jaml.read(text)
+        self.assertEqual(
+            list(msgs),
+            ['1bar"', '2bar', '3ba"r', "4bar'", "5bar", "6ba'r", '7ba"r', "8ba'r"])
+
+    def test_read_colons_in_keys(self):
+        text = """
+bar:baz: foo1
+bar: baz: foo2
+"bar:baz: boz": foo3
+"bar"": baz: boz": foo4
+        """
+        msgs = jaml.read(text)
+        self.assertEqual(
+            list(msgs),
+            ["bar:baz", "bar", "bar:baz: boz", "bar\": baz: boz"]
+        )
 
     def test_stray_comments(self):
         self.assertRaisesRegex(jaml.JamlError, "5", jaml.read, """
@@ -267,13 +284,12 @@ ghi: jkl
     def test_syntax_errors(self):
         self.assertRaisesRegex(
             jaml.JamlError, "Line 1: invalid quoted key", jaml.read, "'''x: y")
-
-        # I don't know how to actually trigger a syntax error in value string;
-        # it's easier to just mock it.
-        with patch("ast.literal_eval", Mock(side_effect=SyntaxError)):
-            self.assertRaisesRegex(
-                jaml.JamlError, "Line 1: invalid quoted value",
-                jaml.read, 'x:"y"')
+        self.assertRaisesRegex(
+            jaml.JamlError, "Line 1: invalid quoted key", jaml.read, "'x: y")
+        self.assertRaisesRegex(
+            jaml.JamlError,
+            "Line 1: colon at the end of the key should be "
+            "followed by a space or a new line", jaml.read, "x:y")
 
     def test_format_errors(self):
         # This function checks for exact error messages. While this is not
@@ -286,7 +302,7 @@ ghi: jkl
             : ghi"""
         )
         self.assertRaisesRegex(
-            jaml.JamlError, "Line 3: colon expected", jaml.read, """
+            jaml.JamlError, "Line 3: key followed by colon expected", jaml.read, """
         abc:
             def
                 ghi: jkl
@@ -399,6 +415,8 @@ class `A`: false
                          "'x ': true\n")
         self.assertEqual(jaml.dump({" x: y": MsgNode(True)}),
                          "' x: y': true\n")
+        self.assertEqual(jaml.dump({"x:y": MsgNode(True)}),
+                         "x:y: true\n")
 
     def test_dump_blocks(self):
         tree = {"a/b.py":

@@ -53,9 +53,9 @@ confidence=
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
 disable=
-    missing-docstring,  # I guess not
-    no-else-return,     # else's may actually improve readability
-    too-many-branches   # distracting rather than helpful
+    missing-docstring,              # I guess not
+    no-else-return, no-else-raise,  # else's may actually improve readability
+    too-many-branches               # distracting rather than helpful
 
 
 [REPORTS]
