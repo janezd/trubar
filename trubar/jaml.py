@@ -73,7 +73,7 @@ def readlines(lines):
                 if block_indent == 0 and line == "|||":
                     break
             block += line[block_indent:] + "\n"
-        return block.strip("\n")
+        return block[:-1]
 
     def check_no_comments():
         if comments:
