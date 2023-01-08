@@ -148,6 +148,40 @@ abc:
                 comments=None)}
         )
 
+        text = """
+abc:
+    |
+       ghi
+                abc
+                    dfg
+               jkl
+    : |
+                hjk
+                              ghj
+                                   lkj
+                    pqr
+    |
+       ghi2
+                abc
+                    dfg
+               jkl
+    : |
+                hjk
+                              ghj
+                                   lkj
+                    pqr"""
+        key = """ghi
+         abc
+             dfg
+        jkl"""
+        value = """hjk
+              ghj
+                   lkj
+    pqr"""
+        tr = jaml.read(text)["abc"].value
+        self.assertEqual(tr[key].value, value)
+        self.assertEqual(tr[key.replace("ghi", "ghi2")].value, value)
+
     def test_read_quotes_in_values(self):
         text = """
 foo1: "bar 
