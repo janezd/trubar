@@ -11,7 +11,7 @@
 # paths.
 ignore=
 
-ignore-paths:.*/((shell_tests)|(test_module)|(test_module_2))/.*
+ignore-paths:.*/((shell_tests)|(test_module)|(test_module_2)|(code/sample))/.*
 
 # Pickle collected data for later comparisons.
 persistent=yes
