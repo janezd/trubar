@@ -68,11 +68,11 @@ def main() -> None:
                         "Merge translations into template or existing "
                         "translations")
     parser.add_argument(
-        "new_translations", metavar="new",
+        "translations", metavar="source",
         help="new or updated translations")
     parser.add_argument(
-        "pot", metavar="existing",
-        help="existing translations; "
+        "pot", metavar="destination",
+        help="template or existing translations; "
              "this file is updated unless another output is given")
     parser.add_argument(
         "-o", "--output", metavar="output-file",
@@ -138,7 +138,7 @@ def main() -> None:
                   verbosity=verbosity, dry_run=args.dry_run)
 
     elif args.action == "merge":
-        additional = load(args.new_translations)
+        additional = load(args.translations)
         existing = load(args.pot)
         rejected = merge(additional, existing, pattern,
                          print_rejections=bool(args.rejected))
