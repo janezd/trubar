@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Getting Started - Trubar</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Getting Started";
+        var mkdocs_page_input_path = "getting-started.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Trubar
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">Getting Started</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#collecting-messages">Collecting messages</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#translating-messages">Translating messages</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#applying-translations">Applying translations</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../message-files/">Message Files</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../scenarios/">Common Scenarios</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../command-line/">Command Line</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../configuration/">Configuration</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../localization/">Localization Issues</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../questions/">Questions</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Trubar</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+      <li>Getting Started</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="getting-started">Getting Started</h2>
+<p>Imagine a Python project named <code>sample</code> with the following typical structure.</p>
+<pre><code>sample
+    farm
+        __init__.py
+    pigs.py
+    __main__.py
+setup.py
+README
+LICENSE
+</code></pre>
+<p>File <code>sample/farm/pigs.py</code> contains</p>
+<pre><code class="language-python">class PigManager:
+    def __init__(self, n):
+        if not 5 &lt;= n &lt;= 20:
+            raise ValueError(
+                f&quot;Wrong number: number of pigs should be between 5 and 20, not {n}.&quot;)
+        self.n = n
+
+    def walk(self):
+        print(f&quot;{self.n} little pigs went for a walk&quot;)
+</code></pre>
+<p>and <code>sample/__main__.py</code> contains</p>
+<pre><code class="language-python">from farm.pigs import PigManager
+
+def main():
+    ns = input(&quot;Enter a number between 5 and 20: &quot;)
+    try:
+        n = int(ns)
+    except ValueError:
+        print(f&quot;'{n}' is not a number&quot;)
+    else:
+        farm = PigManager(n)
+        farm.walk()
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<p>and <code>sample/farm/__init__.py</code> is empty.</p>
+<p>Note that, unlike in the gettext framework, messages are not "marked" for translation by being passed through a call to a translation function like <code>_</code>, <code>tr</code> or <code>gettext</code>.</p>
+<h3 id="collecting-messages">Collecting messages</h3>
+<p>To collect all strings in the project, use <a href="/command-line/#collect">collect</a>.</p>
+<pre><code>trubar collect -s code/sample -o sample.jaml
+</code></pre>
+<p>The first argument <code>-s</code> gives the root directory. This will usually not be the root of the project, which only contains "administrative" files like setup.py, but the directory with actual sources that need translation.</p>
+<p>The found strings are written into the output file, in our example <code>sample.jaml</code>.</p>
+<pre><code class="language-raw">__main__.py:
+    def `main`:
+        'Enter a number between 5 and 20: ': null
+        &quot;'{n}' is not a number.&quot;: null
+    __main__: null
+farm/pigs.py:
+    class `PigManager`:
+        def `__init__`:
+            'Wrong number: number of pigs should be between 5 and 20, not {n}.': null
+        def `walk`:
+            {self.n} little pigs went for a walk: null
+</code></pre>
+<p>See the section about <a href="/message-files">Message files</a> for details about the file format.</p>
+<h3 id="translating-messages">Translating messages</h3>
+<p>The next step is to edit the .jaml file: <code>null</code>'s need to be replaced by translations or marked in another way. Here's a Slovenian translation.</p>
+<pre><code>__main__.py:
+    def `main`:
+        'Enter a number between 5 and 20: ': 'Vnesite število med 5 in 20: '
+        &quot;'{n}' is not a number.&quot;: '{n}' ni število.
+    __main__: false
+farm/pigs.py:
+    class `PigManager`:
+        def `__init__`:
+            # I translated this, but I'm not sure it's needed.
+            'Wrong number: {n} is not between 5 and 20.': Napačno število: {n} ni med 5 in 20.
+        def `walk`:
+            {self.n} little pigs went for a walk: {self.n} prašičkov se je šlo sprehajat.
+</code></pre>
+<p>We translated <code>__main__</code> as <code>false</code>, which indicates that this string must not be translated. Other options are explained <a href="/message-files/#translations">later</a>.</p>
+<h3 id="applying-translations">Applying translations</h3>
+<p>In most scenarios, we first need to prepare a copy of the entire project, because Trubar will only copy the files within its scan range. Suppose that <code>../project_copy</code> contains such a copy.</p>
+<p>Now run <a href="/command-line/#translate">translate</a>.</p>
+<pre><code>trubar translate -s code/sample -d ../project_copy/code/sample sample.jaml
+</code></pre>
+<p>That's it.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../message-files/" class="btn btn-neutral float-right" title="Message Files">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+      <span><a href="../message-files/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme_extra.js" defer></script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Command Line - Trubar</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Command Line";
+        var mkdocs_page_input_path = "command-line.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Trubar
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../getting-started/">Getting Started</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../message-files/">Message Files</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../scenarios/">Common Scenarios</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">Command Line</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#collect">Collect</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#translate">Translate</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#merge">Merge</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#missing">Missing</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#template">Template</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#stat">Stat</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../configuration/">Configuration</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../localization/">Localization Issues</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../questions/">Questions</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Trubar</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+      <li>Command Line</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="command-line-actions-and-their-arguments">Command line actions and their arguments</h2>
+<p>Trubar is invoked by</p>
+<p><code>trubar &lt;common-arguments&gt; &lt;action&gt; &lt;arguments&gt;</code></p>
+<p><strong>Common arguments</strong> are</p>
+<dl>
+<dt><code>-h</code></dt>
+<dd>Prints help and exits.</dd>
+<dt><code>--conf &lt;conf-file&gt;</code></dt>
+<dd>Specifies the <a href="/configuration">configuration file</a>.</dd>
+</dl>
+<p>Action must be one of the following:</p>
+<ul>
+<li><strong>collect:</strong> collects strings from the specified source tree,</li>
+<li><strong>translate:</strong> copies the source tree and replaces strings with their translations,</li>
+<li><strong>missing:</strong> prepares a file that contains untranslated messages from another message file (i.e., those with <code>null</code> translations),</li>
+<li><strong>merge:</strong> inserts translations from one message file into another,</li>
+<li><strong>template:</strong> uses translations into one language to prepare a template for another,</li>
+<li><strong>stat:</strong> reports on the number of type of translations.</li>
+</ul>
+<h3 id="collect">Collect</h3>
+<pre><code>trubar collect [-h] [-s source-dir] [-p pattern]
+                -o output-file [-q]
+</code></pre>
+<p>Collects strings from the specified source tree, skipping files that don't end with <code>.py</code> or whose path includes <code>tests/test_</code>. (The latter can be changed in <a href="/configuration">configuration file</a>.) Strings with no effect are ignored; this is aimed at docstrings, but will also skip any other unused strings.</p>
+<dl>
+<dt><code>-s &lt;path&gt;</code>, <code>--source &lt;path&gt;</code></dt>
+<dd>Defines the root directory of the source tree. Default is the current directory.</dd>
+<dt><code>-p &lt;pattern&gt;</code>, <code>--pattern &lt;pattern&gt;</code></dt>
+<dd>Gives a pattern that the file path must include to be considered. The pattern is checked against the entire path; e.g. <code>-p rm/pi</code> would match the path <code>farm/pigs.py:</code>.</dd>
+<dt><code>-o &lt;output-file&gt;</code>, <code>--output &lt;output-file&gt;</code> (required)</dt>
+<dd>The name of the output file; extension should be .jaml (preferred) or .yaml.</dd>
+<dt><code>-q</code>, <code>--quiet</code></dt>
+<dd>Supresses the output, except critical error messages.</dd>
+</dl>
+<h3 id="translate">Translate</h3>
+<pre><code>trubar translate [-h] [-s source-dir] [-d destination-dir]
+                 [-p pattern]
+                 [--static static-files-dir]
+                 [-q] [-v {0,1,2,3}] [-n]
+                 translations
+</code></pre>
+<p>Translates files with extension .py and writes them to destination directories, and copies all other files. Untranslated strings (marked <code>null</code>, <code>false</code> or <code>true</code>) are kept as they are. The action overwrites any existing files.</p>
+<dl>
+<dt><code>translations</code> (required)</dt>
+<dd>the name of the file with translated messages.</dd>
+<dt><code>-s &lt;source-path&gt;</code>, <code>--source &lt;source-path&gt;</code></dt>
+<dd>Root directory of the source tree. Default is the current directory.</dd>
+<dt><code>-d &lt;dest-path&gt;</code>, <code>--dest &lt;dest-path&gt;</code> (required)</dt>
+<dd>Destination directory.</dd>
+<dt><code>-p &lt;pattern&gt;</code>, <code>--pattern &lt;pattern&gt;</code></dt>
+<dd>A pattern that the file path must include to be considered.</dd>
+<dt><code>--static &lt;static-files-path&gt;</code></dt>
+<dd>Copies the file from the given path into destination tree; essentially <code>cp -R &lt;static-files-path&gt; &lt;dest-path&gt;/&lt;static-file-path&gt;</code>. This is used for <a href="/localization/#plural-forms">adding modules with target-language related features</a>, like those for plural forms.</dd>
+<dt><code>-q</code>, <code>--quiet</code></dt>
+<dd>Supresses output messages, except for critical. Overrides option <code>-v</code>.</dd>
+<dt><code>-v &lt;level&gt;</code>, <code>--verbosity &lt;level&gt;</code></dt>
+<dd>Sets the verbosity level to <code>0</code> (critical messages, equivalent to <code>-q</code>), <code>1</code> (report on files that are created or updated), <code>2</code> (also list files that have not changed) or <code>3</code> (report on all files, including those merely copied). This option is ignored in presence of <code>-q</code>.</dd>
+<dt><code>-n</code>, <code>--dry-run</code></dt>
+<dd>Run, but do not write anything.</dd>
+</dl>
+<h3 id="merge">Merge</h3>
+<pre><code>trubar merge [-h] [-o output-file] [-r rejected-file]
+                  [-p pattern] [-n]
+                   new existing
+</code></pre>
+<p>Merges translations into another message file. After a new release of the package, one can use <code>collect</code> to extract the current set of messages, and <code>merge</code> to merge existing translations into it.</p>
+<dl>
+<dt><code>source</code> (required)</dt>
+<dd>The "source" file with translations.</dd>
+<dt><code>destination</code> (required)</dt>
+<dd>Destination file into which we won't to insert the source translations.</dd>
+<dt><code>-o &lt;output-file&gt;</code>, <code>--output &lt;output-file&gt;</code></dt>
+<dd>The output file name; if omitted, the file given as <code>destination</code> is changed.</dd>
+<dt><code>-r &lt;rejected&gt;</code>, <code>--rejected &lt;rejected&gt;</code></dt>
+<dd>A name of the file for messages that no longer appear in the sources.</dd>
+<dt><code>-p &lt;pattern&gt;</code>, <code>--pattern &lt;pattern&gt;</code></dt>
+<dd>A pattern that the file path must include to be considered.</dd>
+<dt><code>-n</code>, <code>--dry-run</code></dt>
+<dd>Run, but do not write anything.</dd>
+</dl>
+<h3 id="missing">Missing</h3>
+<pre><code>trubar missing [-h] [-p pattern] [-m messages] -o output-file
+                      translations
+</code></pre>
+<p>Prepare a file with missing translations. A translation is missing if the translated message is <code>null</code>. Alternatively, the user can pass a file with all messages (option <code>-m</code>), and the translation is missing if the translated file either does not include it or has a <code>null</code> translation.</p>
+<dl>
+<dt><code>translations</code> (required)</dt>
+<dd>The name of the file with messages.</dd>
+<dt><code>-o &lt;output-file&gt;</code>, <code>--output &lt;output-file&gt;</code> (required)</dt>
+<dd>The name of the output file.</dd>
+<dt><code>-m &lt;msg-file&gt;</code>, <code>--messages &lt;msg-file&gt;</code></dt>
+<dd>If given, this file is considered to contain all messages.</dd>
+<dt><code>-p &lt;pattern&gt;</code>, <code>--pattern &lt;pattern&gt;</code></dt>
+<dd>If given, the output file will only contain messages from source files whose paths include the pattern.</dd>
+</dl>
+<h3 id="template">Template</h3>
+<pre><code>trubar template [-h] [-p pattern] -o output-file translations
+</code></pre>
+<p>Create a template from existing translations. The output file will contain all strings that need attention.</p>
+<ul>
+<li>Strings that are "translated" to <code>false</code> are skipped, because they must not be translated.</li>
+<li>Strings that are "translated" to <code>true</code> are retained as they are. <code>true</code> indicates that they should probably be kept, but may also be translated if needed.</li>
+<li>If string is translated, the original is kept, but translation is replaced by <code>null</code>.</li>
+<li>Strings that are not translated (<code>null</code>) are kept.</li>
+</ul>
+<dl>
+<dt><code>translations</code> (required)</dt>
+<dd>Existing (preferrably complete) translations into some language.</dd>
+<dt><code>-o &lt;output-file</code>, <code>--output &lt;output-file&gt;</code> (required)</dt>
+<dd>Output file name.</dd>
+<dt><code>-p &lt;pattern&gt;</code>, <code>--pattern &lt;pattern&gt;</code></dt>
+<dd>If given, the output file will only contain messages from source files whose paths include the pattern.</dd>
+</dl>
+<h3 id="stat">Stat</h3>
+<pre><code>trubar stat [-h] [-p pattern] message-file
+</code></pre>
+<p>Print statistics about messages in the given file.</p>
+<p>Here's an example output.</p>
+<dl>
+<dt><code>message-file</code> (required)</dt>
+<dd>File with messages.</dd>
+<dt><code>-p &lt;pattern&gt;</code>, <code>--pattern &lt;pattern&gt;</code></dt>
+<dd>If given, the count will include files whose paths include the pattern.</dd>
+</dl>
+<pre><code>Total messages: 11161
+
+Translated:       3257    29.2%
+Kept unchanged:    313     2.8%
+Programmatic:     7065    63.3%
+Total completed: 10635    95.3%
+
+Untranslated:      526     4.7%
+</code></pre>
+<p>Translated messages are those with actual translations, unchanged are translated as <code>true</code> and "programmatic" as <code>false</code>. "Untranslated" messages are those that are still marked as <code>null</code> and require translations.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../scenarios/" class="btn btn-neutral float-left" title="Common Scenarios"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../configuration/" class="btn btn-neutral float-right" title="Configuration">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../scenarios/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../configuration/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme_extra.js" defer></script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

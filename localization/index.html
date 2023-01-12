@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Localization Issues - Trubar</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Localization Issues";
+        var mkdocs_page_input_path = "localization.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Trubar
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../getting-started/">Getting Started</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../message-files/">Message Files</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../scenarios/">Common Scenarios</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../command-line/">Command Line</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../configuration/">Configuration</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">Localization Issues</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#automated-f-strings">Automated f-strings</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#plural-forms">Plural forms</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#plural-forms-in-english">Plural forms in English</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#plural-forms-for-other-languages">Plural forms for other languages</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#other-localization-functions">Other localization functions</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#importing-localization-functions">Importing localization functions</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#other-forms-of-interpolation">Other forms of interpolation</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../questions/">Questions</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Trubar</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+      <li>Localization Issues</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="f-strings-and-localization-issues">F-strings and localization issues</h2>
+<p>F-strings offer a powerful support for translation into language with complex grammar.</p>
+<h3 id="automated-f-strings">Automated f-strings</h3>
+<p>Trubar sometimes turn strings into f-string in translated files.</p>
+<p>If the original source contains an f-string, Trubar will keep the f-prefix in translated source even if the translation does not contain any parts to interpolate. Superfluous f-prefixes do not hurt.</p>
+<p>If the original string is not an f-string but the translation contains braces and prefixing this string with f- makes it a syntactically valid f-string, Trubar will add an f-prefix unless:</p>
+<ul>
+<li>the original string already included braces (so this may be a pattern for <code>str.format</code>)</li>
+<li>or this behaviour is explicitly disabled in <a href="/configuration">configuration</a> by setting <code>auto-prefix: false</code>.</li>
+</ul>
+<h3 id="plural-forms">Plural forms</h3>
+<p>Trubar does not itself offer any specific functionality for plural forms. There is however a neat way of doing it, in particular if the original source is written in a translation-friendly way.</p>
+<p>The number of pigs in the getting started example is between 5 and 20, which requires a plural in any language with which the author of this text is sufficiently familiar. But now suppose that the number of pigs can be an arbitrary non-negative number. How do we translate <code>"{self.n} little pigs went for a walk"</code>?</p>
+<h4 id="plural-forms-in-english">Plural forms in English</h4>
+<p>The simplest way to support English plural in a large project would be to have a module, say in file <code>utils.localization.__init__.py</code>, with a function</p>
+<pre><code class="language-python">def pl(n: int, forms: str) -&gt; str:
+    plural = int(n != 1)
+
+    if &quot;|&quot; in forms:
+        return forms.split(&quot;|&quot;)[plural]
+
+    if forms[-1] in &quot;yY&quot; and forms[-2] not in &quot;aeiouAEIOU&quot;:
+        word = [forms, forms[:-1] + &quot;ies&quot;][plural]
+    else:
+        word = forms + &quot;s&quot; * plural
+    if forms.isupper():
+        word = word.upper()
+    return word
+</code></pre>
+<p>With this, the above string should be written as</p>
+<pre><code class="language-python">&quot;{self.n} little {pl(self.n, 'pig')} went for a walk&quot;
+</code></pre>
+<p>The function take care of regular-ish plural forms, including <code>"piggy"</code> (<code>"piggies"</code>) as well as <code>"monkey"</code> (<code>"monkeys"</code>). If the plural is irregular, it requires both forms, separated by <code>|</code>, e.g. <code>pl(n, "leaf|leaves")</code>.</p>
+<h4 id="plural-forms-for-other-languages">Plural forms for other languages</h4>
+<p>For other languages, one can write a similar module. If the project already includes <code>utils/localization/__init__.py</code>, an appropriate place for a Slovenian-language functions would be <code>utils/localization/si.py</code>.</p>
+<p>The function can be arbitrarily complex. This one takes care of Slovenian nouns, which have four plural forms in nominative and three in other cases, and also offers some automation for nominative case of some regular nouns.</p>
+<pre><code class="language-python">def plsi(n: int, forms: str) -&gt; str:
+    n = abs(n) % 100
+    if n == 4:
+        n = 3
+    elif n == 0 or n &gt;= 5:
+        n = 4
+    n -= 1
+
+    if &quot;|&quot; in forms:
+        forms = forms.split(&quot;|&quot;)
+        if n == 3 and len(forms) == 3:
+            n -= 1
+        return forms[n]
+
+    if forms[-1] == &quot;a&quot;:
+        return forms[:-1] + (&quot;a&quot;, &quot;i&quot;, &quot;e&quot;, &quot;&quot;)[n]
+    else:
+        return forms + (&quot;&quot;, &quot;a&quot;, &quot;i&quot;, &quot;ov&quot;)[n]
+</code></pre>
+<p>The translation of </p>
+<pre><code class="language-python">{self.n} {pl(self.n, 'pig')}
+</code></pre>
+<p>into Slovenian is then</p>
+<pre><code class="language-python">{self.n} {plsi(self.n, 'pujsek|pujska|pujski|pujskov')}
+</code></pre>
+<p>while the entire sentence</p>
+<pre><code class="language-python">{self.n} little pigs went for a walk
+</code></pre>
+<p>requires changing most of the sentence</p>
+<pre><code class="language-python">`&quot;{self.n} {plsi(self.n, 'pujsek se je šel|pujska sta se šla|pujski so se šli|pujskov se je šlo')} sprehajat.&quot;`
+</code></pre>
+<p>Note that this works even if the original message does not contain any plural forms, for instance because the way it is phrased original is independent of the number. The only condition is that the number, in our case <code>self.n</code> is easily accessible in the string.</p>
+<p>This is also the reason why Trubar automatically turns strings into f-strings when it detects braces with expressions.</p>
+<h4 id="other-localization-functions">Other localization functions</h4>
+<p>The language-specific module can contain other support functions. For instance, the Slovenian translation of the word "with" in a message <code>"With {self.n} {pl(self.n, 'pigs')}"</code> is either "s" or "z", depending on the first sound of the number. Therefore, the Slovenian module for localization includes a function <code>plsi_sz(n)</code> that returns the necessary preposition for the given. The translation of the above would thus be </p>
+<pre><code>{plsi_sz(self.n)} {self.n} {pl(self.n, 'pujskom|pujskoma|pujski')}
+</code></pre>
+<p>The same mechanism can be used for other language quirks.</p>
+<h4 id="importing-localization-functions">Importing localization functions</h4>
+<p>The above examples requires importing the localization functions, such as <code>plsi</code> and <code>plsi_sz</code>.</p>
+<p>First, the translated sources must include the necessary module, which does not exist in the original source. To this end, we need to prepare a directory with static files. In our case, we can have a directory named, for instance <code>si-local</code>, containing <code>si-local/utils/localization/__init__.py</code>. When translating, we instruct Trubar to copy this into translated source tree by adding an option <code>--static si-local</code> to the <a href="/command-line/#translate"><code>translate</code> action</a>.</p>
+<p>Second, all translated source files must include the necessary import. We do this using a directive in <a href="/configuration">configuration file</a>:</p>
+<pre><code>auto-import: &quot;from orangecanvas.utils.localization.si import plsi, plsi_sz&quot;
+</code></pre>
+<p>Trubar will prepend this line to the beginning of all files with any translations.</p>
+<h4 id="other-forms-of-interpolation">Other forms of interpolation</h4>
+<p>While Trubar works best with f-strings, other forms of interpolation in Python, <code>%</code> and <code>format</code> can sometimes be translated, provided the required data can be extracted. For instance, with <code>"%i little pigs" % self.n</code>, the translator would see the string part, <code>%i little pigs</code> and could translate it to <code>"{plsi(self.n, '%i pujsek|%i pujska|%i pujski|%i pujskov')}"</code>, that is, (s)he would replace the entire string with variations corresponding to different values of <code>self.n</code>.</p>
+<p>Persuading developpers to use f-strings is obviously a better alternative.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../configuration/" class="btn btn-neutral float-left" title="Configuration"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../questions/" class="btn btn-neutral float-right" title="Questions">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../configuration/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../questions/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme_extra.js" defer></script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
