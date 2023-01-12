@@ -9,7 +9,7 @@ import yaml
 
 @dataclasses.dataclass
 class Configuration:
-    auto_quotes: bool = True
+    smart_quotes: bool = True
     auto_prefix: bool = True
 
     auto_import: str = ""

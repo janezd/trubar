@@ -13,22 +13,22 @@ class ConfigTest(TestBase):
 
     def test_proper_file(self):
         config = Configuration()
-        self.prepare("auto_quotes: false\n\nencoding: cp-1234")
+        self.prepare("smart_quotes: false\n\nencoding: cp-1234")
         config.update_from_file(self.fn)
-        self.assertFalse(config.auto_quotes)
+        self.assertFalse(config.smart_quotes)
         self.assertTrue(config.auto_prefix)
         self.assertEqual(config.encoding, "cp-1234")
 
     @patch("builtins.print")
     def test_malformed_file(self, _):
         config = Configuration()
-        self.prepare("auto_quotes: false\n\nencoding")
+        self.prepare("smart_quotes: false\n\nencoding")
         self.assertRaises(SystemExit, config.update_from_file, self.fn)
 
     @patch("builtins.print")
     def test_unrecognized_option(self, a_print):
         config = Configuration()
-        self.prepare("auto_quotes: false\n\nauto_magog: false")
+        self.prepare("smart_quotes: false\n\nauto_magog: false")
         self.assertRaises(SystemExit, config.update_from_file, self.fn)
         self.assertIn("auto_magog", a_print.call_args[0][0])
 

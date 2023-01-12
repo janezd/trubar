@@ -3,14 +3,14 @@
 Configuration file is a simple yaml file with options-value pairs, for instance
 
 ```
-auto-quote: false
+smart-quotes: false
 auto-prefix: true
 auto-import: "from orangecanvas.utils.localization.si import plsi, plsi_sz"
 ```
 
 The available options are
 
-`auto-quote` (default: true)
+`smart-quotes` (default: true)
 : If set to `false`, strings in translated sources will have the same quotes as in the original source. Otherwise, if translation of a single-quoted includes a single quote, Trubar will output a double-quoted string and vice-versa. If translated message contains both types of quotes, they must be escaped with backslash.
 
 `auto-prefix` (default: true)
