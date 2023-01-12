@@ -160,7 +160,7 @@ class StringTranslator(cst.CSTTransformer):
         assert isinstance(translation, str)
 
         quote = node.quote
-        if config.auto_quotes:
+        if config.smart_quotes:
             has_single = re_single_quote.search(translation)
             has_double = re_double_quote.search(translation)
             if quote == "'" and has_single and not has_double:
