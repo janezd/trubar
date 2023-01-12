@@ -440,14 +440,14 @@ def stat(messages: MsgDict, pattern: str):
         print(f"Total messages: {abs(stats)}")
         print()
         print(f"{'Translated:':16}"
-              f"{stats.translated:5}{100 * stats.translated / n_all:8.1f}%")
+              f"{stats.translated:6}{100 * stats.translated / n_all:8.1f}%")
         print(f"{'Kept unchanged:':16}"
-              f"{stats.kept:5}{100 * stats.kept / n_all:8.1f}%")
+              f"{stats.kept:6}{100 * stats.kept / n_all:8.1f}%")
         print(f"{'Programmatic:':16}"
-              f"{stats.programmatic:5}{100 * stats.programmatic / n_all:8.1f}%")
+              f"{stats.programmatic:6}{100 * stats.programmatic / n_all:8.1f}%")
         print(f"{'Total completed:':16}"
-              f"{n_all - stats.untranslated:5}"
+              f"{n_all - stats.untranslated:6}"
               f"{100 - 100 * stats.untranslated / n_all:8.1f}%")
         print()
         print(f"{'Untranslated:':16}"
-              f"{stats.untranslated:5}{100 * stats.untranslated / n_all:8.1f}%")
+              f"{stats.untranslated:6}{100 * stats.untranslated / n_all:8.1f}%")

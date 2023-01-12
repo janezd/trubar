@@ -1,8 +1,8 @@
 Total messages: 12
 
-Translated:         4    33.3%
-Kept unchanged:     1     8.3%
-Programmatic:       3    25.0%
-Total completed:    8    66.7%
+Translated:          4    33.3%
+Kept unchanged:      1     8.3%
+Programmatic:        3    25.0%
+Total completed:     8    66.7%
 
-Untranslated:       4    33.3%
+Untranslated:        4    33.3%
