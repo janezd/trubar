@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link href="../extra.css" rel="stylesheet" />
     
       <script>
         // Current page data
@@ -141,9 +142,9 @@ if __name__ == &quot;__main__&quot;:
 <p>Note that, unlike in the gettext framework, messages are not "marked" for translation by being passed through a call to a translation function like <code>_</code>, <code>tr</code> or <code>gettext</code>.</p>
 <h3 id="collecting-messages">Collecting messages</h3>
 <p>To collect all strings in the project, use <a href="/command-line/#collect">collect</a>.</p>
-<pre><code>trubar collect -s code/sample -o sample.jaml
+<pre><code>trubar collect -s code/sample sample.jaml
 </code></pre>
-<p>The first argument <code>-s</code> gives the root directory. This will usually not be the root of the project, which only contains "administrative" files like setup.py, but the directory with actual sources that need translation.</p>
+<p>The argument <code>-s</code> gives the root directory. This will usually not be the root of the project, which only contains "administrative" files like setup.py, but the directory with actual sources that need translation.</p>
 <p>The found strings are written into the output file, in our example <code>sample.jaml</code>.</p>
 <pre><code class="language-raw">__main__.py:
     def `main`:

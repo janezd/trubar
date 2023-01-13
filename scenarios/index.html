@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link href="../extra.css" rel="stylesheet" />
     
       <script>
         // Current page data
@@ -100,16 +101,9 @@
                 <h2 id="common-scenarios">Common Scenarios</h2>
 <h3 id="translations-maintenance">Translations maintenance</h3>
 <p>As software changes, some messages may change or be removed, and new messages may appear.</p>
-<p>Say that a new release of <code>sample</code> starts with</p>
-<pre><code class="language-python">    print(&quot;This program serves no useful purpose.&quot;)
+<p>To update message file, re-run the collection, specifying the same output file. This will add new messages and keep the existing translations. Any messages that are no longer needed can be recorded in a separate file by pasing an option <code>-r</code>.</p>
+<pre><code>trubar collect -s code/sample -r removed.jaml sample.jaml
 </code></pre>
-<p>and <code>"Wrong number: {n} is not between 5 and 20."</code> was kindly changed to <code>"Wrong number: {n} must be between 5 and 20."</code>.</p>
-<p>To update translations, we do the following:</p>
-<pre><code>trubar collect -s code/sample -o new-sample.jaml
-trubar merge sample.jaml new-sample.jaml
-</code></pre>
-<p><code>collect</code> collects new messages and <code>merge</code> merges existing translations into new messages. We can then edit <code>new-sample.jaml</code> and at the end rename them to <code>sample.jaml</code>, or first rename and then edit.</p>
-<p>(This process is too complicated; a simplification is planned soon.)</p>
 <h3 id="preparing-templates">Preparing templates</h3>
 <p>Unlike in our toy example, real projects contain a large proportion of string (one half up to two thirds, in our experience) that must not be translated, such as type annotations in form of strings, various string constants and arguments, old-style named tuple declarations and so forth. Deciding whether a partiuclar string needs translation or not requires looking into code and understanding it.</p>
 <p>This presents a huge burden for translator, but can, luckily, be done once for all languages. If a project is translated into one language, we can use</p>

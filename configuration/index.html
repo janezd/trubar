@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link href="../extra.css" rel="stylesheet" />
     
       <script>
         // Current page data
@@ -95,13 +96,13 @@
               
                 <h2 id="configuration-file">Configuration file</h2>
 <p>Configuration file is a simple yaml file with options-value pairs, for instance</p>
-<pre><code>auto-quote: false
+<pre><code>smart-quotes: false
 auto-prefix: true
 auto-import: &quot;from orangecanvas.utils.localization.si import plsi, plsi_sz&quot;
 </code></pre>
 <p>The available options are</p>
 <dl>
-<dt><code>auto-quote</code> (default: true)</dt>
+<dt><code>smart-quotes</code> (default: true)</dt>
 <dd>If set to <code>false</code>, strings in translated sources will have the same quotes as in the original source. Otherwise, if translation of a single-quoted includes a single quote, Trubar will output a double-quoted string and vice-versa. If translated message contains both types of quotes, they must be escaped with backslash.</dd>
 <dt><code>auto-prefix</code> (default: true)</dt>
 <dd>If set, Trubar will turn strings into f-strings if translation contains braces and adding an f- prefix makes it a syntactically valid string, <em>unless</em> the original string already included braces, in which case this may had been a pattern for <code>str.format</code>.</dd>

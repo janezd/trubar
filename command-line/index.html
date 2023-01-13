@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link href="../extra.css" rel="stylesheet" />
     
       <script>
         // Current page data
@@ -125,32 +126,39 @@
 <li><strong>stat:</strong> reports on the number of type of translations.</li>
 </ul>
 <h3 id="collect">Collect</h3>
-<pre><code>trubar collect [-h] [-s source-dir] [-p pattern]
-                -o output-file [-q]
+<pre><code>trubar collect [-h] [-p pattern] [-s source-dir]
+               [-r removed-translations] [-q] [-n]
+               messages
 </code></pre>
 <p>Collects strings from the specified source tree, skipping files that don't end with <code>.py</code> or whose path includes <code>tests/test_</code>. (The latter can be changed in <a href="/configuration">configuration file</a>.) Strings with no effect are ignored; this is aimed at docstrings, but will also skip any other unused strings.</p>
+<p>If the output file already exists, it is updated: new messages are merged into it, existing translations are kept, and obsolete messages are removed. The latter can be recorded using the option <code>-r</code>.</p>
 <dl>
+<dt><code>messages</code></dt>
+<dd>The name of the file with messages (preferrably .jaml). If the file does not exist, it is created, otherwise it is updated with new messages and obsolete
+messages are removed.</dd>
 <dt><code>-s &lt;path&gt;</code>, <code>--source &lt;path&gt;</code></dt>
 <dd>Defines the root directory of the source tree. Default is the current directory.</dd>
 <dt><code>-p &lt;pattern&gt;</code>, <code>--pattern &lt;pattern&gt;</code></dt>
 <dd>Gives a pattern that the file path must include to be considered. The pattern is checked against the entire path; e.g. <code>-p rm/pi</code> would match the path <code>farm/pigs.py:</code>.</dd>
-<dt><code>-o &lt;output-file&gt;</code>, <code>--output &lt;output-file&gt;</code> (required)</dt>
-<dd>The name of the output file; extension should be .jaml (preferred) or .yaml.</dd>
+<dt><code>-r &lt;removed-translations&gt;</code>, <code>--removed &lt;removed-translations&gt;</code></dt>
+<dd>The name of the file for messages that were present in the messages file but no longer needed.</dd>
+</dl>
+<p><code>-n</code>, <code>--dry-run</code>: Run, but do not change the output file. The file with removed messages is still written.</p>
+<dl>
 <dt><code>-q</code>, <code>--quiet</code></dt>
 <dd>Supresses the output, except critical error messages.</dd>
 </dl>
 <h3 id="translate">Translate</h3>
 <pre><code>trubar translate [-h] [-s source-dir] [-d destination-dir]
-                 [-p pattern]
-                 [--static static-files-dir]
+                 [-p pattern] [--static static-files-dir]
                  [-q] [-v {0,1,2,3}] [-n]
-                 translations
+                 messages
 </code></pre>
 <p>Translates files with extension .py and writes them to destination directories, and copies all other files. Untranslated strings (marked <code>null</code>, <code>false</code> or <code>true</code>) are kept as they are. The action overwrites any existing files.</p>
 <dl>
-<dt><code>translations</code> (required)</dt>
+<dt><code>messages</code></dt>
 <dd>the name of the file with translated messages.</dd>
-<dt><code>-s &lt;source-path&gt;</code>, <code>--source &lt;source-path&gt;</code></dt>
+<dt><code>-s &lt;source-dir&gt;</code>, <code>--source &lt;source-dir&gt;</code></dt>
 <dd>Root directory of the source tree. Default is the current directory.</dd>
 <dt><code>-d &lt;dest-path&gt;</code>, <code>--dest &lt;dest-path&gt;</code> (required)</dt>
 <dd>Destination directory.</dd>
@@ -166,19 +174,18 @@
 <dd>Run, but do not write anything.</dd>
 </dl>
 <h3 id="merge">Merge</h3>
-<pre><code>trubar merge [-h] [-o output-file] [-r rejected-file]
-                  [-p pattern] [-n]
-                   new existing
+<pre><code>trubar merge [-h] [-o output-file] [-u unused] [-p pattern] [-n]
+             translations messages
 </code></pre>
-<p>Merges translations into another message file. After a new release of the package, one can use <code>collect</code> to extract the current set of messages, and <code>merge</code> to merge existing translations into it.</p>
+<p>Merges translations into message file.</p>
 <dl>
-<dt><code>source</code> (required)</dt>
+<dt><code>translations</code> (required)</dt>
 <dd>The "source" file with translations.</dd>
-<dt><code>destination</code> (required)</dt>
-<dd>Destination file into which we won't to insert the source translations.</dd>
+<dt><code>messages</code> (required)</dt>
+<dd>File with messages into which the translations from <code>translations</code> are merged. This file is modified unless another output file is given.</dd>
 <dt><code>-o &lt;output-file&gt;</code>, <code>--output &lt;output-file&gt;</code></dt>
 <dd>The output file name; if omitted, the file given as <code>destination</code> is changed.</dd>
-<dt><code>-r &lt;rejected&gt;</code>, <code>--rejected &lt;rejected&gt;</code></dt>
+<dt><code>-u &lt;unused&gt;</code>, <code>--unused &lt;unused&gt;</code></dt>
 <dd>A name of the file for messages that no longer appear in the sources.</dd>
 <dt><code>-p &lt;pattern&gt;</code>, <code>--pattern &lt;pattern&gt;</code></dt>
 <dd>A pattern that the file path must include to be considered.</dd>
@@ -186,22 +193,22 @@
 <dd>Run, but do not write anything.</dd>
 </dl>
 <h3 id="missing">Missing</h3>
-<pre><code>trubar missing [-h] [-p pattern] [-m messages] -o output-file
-                      translations
+<pre><code>trubar missing [-h] [-p pattern] [-m all-messages] -o output-file
+               messages
 </code></pre>
 <p>Prepare a file with missing translations. A translation is missing if the translated message is <code>null</code>. Alternatively, the user can pass a file with all messages (option <code>-m</code>), and the translation is missing if the translated file either does not include it or has a <code>null</code> translation.</p>
 <dl>
-<dt><code>translations</code> (required)</dt>
+<dt><code>messages</code> (required)</dt>
 <dd>The name of the file with messages.</dd>
 <dt><code>-o &lt;output-file&gt;</code>, <code>--output &lt;output-file&gt;</code> (required)</dt>
 <dd>The name of the output file.</dd>
-<dt><code>-m &lt;msg-file&gt;</code>, <code>--messages &lt;msg-file&gt;</code></dt>
+<dt><code>-m &lt;msg-file&gt;</code>, <code>--all-messages &lt;msg-file&gt;</code></dt>
 <dd>If given, this file is considered to contain all messages.</dd>
 <dt><code>-p &lt;pattern&gt;</code>, <code>--pattern &lt;pattern&gt;</code></dt>
 <dd>If given, the output file will only contain messages from source files whose paths include the pattern.</dd>
 </dl>
 <h3 id="template">Template</h3>
-<pre><code>trubar template [-h] [-p pattern] -o output-file translations
+<pre><code>trubar template [-h] [-p pattern] -o output-file messages
 </code></pre>
 <p>Create a template from existing translations. The output file will contain all strings that need attention.</p>
 <ul>
@@ -211,7 +218,7 @@
 <li>Strings that are not translated (<code>null</code>) are kept.</li>
 </ul>
 <dl>
-<dt><code>translations</code> (required)</dt>
+<dt><code>messages</code> (required)</dt>
 <dd>Existing (preferrably complete) translations into some language.</dd>
 <dt><code>-o &lt;output-file</code>, <code>--output &lt;output-file&gt;</code> (required)</dt>
 <dd>Output file name.</dd>
@@ -219,12 +226,12 @@
 <dd>If given, the output file will only contain messages from source files whose paths include the pattern.</dd>
 </dl>
 <h3 id="stat">Stat</h3>
-<pre><code>trubar stat [-h] [-p pattern] message-file
+<pre><code>trubar stat [-h] [-p pattern] messages
 </code></pre>
 <p>Print statistics about messages in the given file.</p>
 <p>Here's an example output.</p>
 <dl>
-<dt><code>message-file</code> (required)</dt>
+<dt><code>messages</code></dt>
 <dd>File with messages.</dd>
 <dt><code>-p &lt;pattern&gt;</code>, <code>--pattern &lt;pattern&gt;</code></dt>
 <dd>If given, the count will include files whose paths include the pattern.</dd>
