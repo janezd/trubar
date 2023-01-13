@@ -12,4 +12,6 @@ nav:
   - Configuration: configuration.md
   - Localization Issues: localization.md
   - Questions: questions.md
-  
+
+extra_css:
+    - extra.css
