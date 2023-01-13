@@ -25,11 +25,13 @@ Action must be one of the following:
 ### Collect
 
 ```
-trubar collect [-h] [-s source-dir] [-p pattern]
+trubar collect [-h] [-s source-dir] [-p pattern] [-r rejected-file] -n
                 -o output-file [-q]
 ```
 
 Collects strings from the specified source tree, skipping files that don't end with `.py` or whose path includes `tests/test_`. (The latter can be changed in [configuration file](/configuration).) Strings with no effect are ignored; this is aimed at docstrings, but will also skip any other unused strings.
+
+If the output file already exists, it is updated: new messages are merged into it, existing translations are kept, and obsolete messages are removed. The latter can be recorded using the option `-r`.
 
 
 `-s <path>`, `--source <path>`
@@ -39,7 +41,12 @@ Collects strings from the specified source tree, skipping files that don't end w
 : Gives a pattern that the file path must include to be considered. The pattern is checked against the entire path; e.g. `-p rm/pi` would match the path `farm/pigs.py:`.
 
 `-o <output-file>`, `--output <output-file>` (required)
-: The name of the output file; extension should be .jaml (preferred) or .yaml.
+: The name of the output file; extension should be .jaml (preferred) or .yaml. If the file exists, it is updated.
+
+`-r <rejected-file>`, `--rejected <rejected-file>`
+: The name of the file for messages that were present in the output file (if it already existed) but are no longer needed.
+
+`-n`, `--dry-run`: Run, but do not change the output file. The file with rejected messages is still written.
 
 `-q`, `--quiet`
 : Supresses the output, except critical error messages.

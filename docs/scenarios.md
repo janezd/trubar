@@ -4,25 +4,11 @@
 
 As software changes, some messages may change or be removed, and new messages may appear.
 
-Say that a new release of `sample` starts with
-
-```python
-    print("This program serves no useful purpose.")
-```
-
-and `"Wrong number: {n} is not between 5 and 20."` was kindly changed to `"Wrong number: {n} must be between 5 and 20."`.
-
-To update translations, we do the following:
+To update message file, re-run the collection, specifying the same output file. This will add new messages and keep the existing translations. Any messages that are no longer needed can be recorded in a separate file by pasing an option `-r`.
 
 ```
-trubar collect -s code/sample -o new-sample.jaml
-trubar merge sample.jaml new-sample.jaml
+trubar collect -s code/sample -o sample.jaml -r rejected.jaml
 ```
-
-`collect` collects new messages and `merge` merges existing translations into new messages. We can then edit `new-sample.jaml` and at the end rename them to `sample.jaml`, or first rename and then edit.
-
-(This process is too complicated; a simplification is planned soon.)
-
 
 ### Preparing templates
 

@@ -79,7 +79,7 @@ widgets/data/__init__.py:
         shranjevanje, spreminjanje, izbiranje in podobno.
 ```
 
-If the first line of translation contains leading spaces, then the `|` symbol must be followed by a number indicating indentation, e.g. `4`, if the first line in indented by 4 additional spaces, compared with the key.
+If the first line of translation contains leading spaces and thus cannot serve to indicate the indentation, the indendation must be indicated by a number following the `|` symbol. E.g., if the first line in indented by 4 additional spaces, the block would begin with `|4`.
 
 Block messages can be translated with non-block strings and vice-versa.
 

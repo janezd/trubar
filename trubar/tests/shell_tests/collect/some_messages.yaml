@@ -1,0 +1,19 @@
+__init__.py:
+    class `A`:
+        def `f`:
+            default: null
+            some/directory: null
+            File {x}: null
+            Not file {x + ".bak"}: null
+            Extra message: Posebno sporočilo
+            Untranslated messages: null
+            '{"nonsense"}': null
+    __main__: null
+    Please don't run this.: null
+    Import it, if you must.: null
+submodule/apples.py:
+    Oranges: Pomaranče
+trash/nothing.py:
+    def `f`:
+        To see here: Videti tukaj?
+        ', really.': null
