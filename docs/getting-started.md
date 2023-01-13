@@ -55,10 +55,10 @@ Note that, unlike in the gettext framework, messages are not "marked" for transl
 To collect all strings in the project, use [collect](/command-line/#collect).
 
 ```
-trubar collect -s code/sample -o sample.jaml
+trubar collect -s code/sample sample.jaml
 ```
 
-The first argument `-s` gives the root directory. This will usually not be the root of the project, which only contains "administrative" files like setup.py, but the directory with actual sources that need translation.
+The argument `-s` gives the root directory. This will usually not be the root of the project, which only contains "administrative" files like setup.py, but the directory with actual sources that need translation.
 
 The found strings are written into the output file, in our example `sample.jaml`.
 

@@ -7,7 +7,7 @@ As software changes, some messages may change or be removed, and new messages ma
 To update message file, re-run the collection, specifying the same output file. This will add new messages and keep the existing translations. Any messages that are no longer needed can be recorded in a separate file by pasing an option `-r`.
 
 ```
-trubar collect -s code/sample -o sample.jaml -r removed.jaml
+trubar collect -s code/sample -r removed.jaml sample.jaml
 ```
 
 ### Preparing templates

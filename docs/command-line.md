@@ -25,14 +25,18 @@ Action must be one of the following:
 ### Collect
 
 ```
-trubar collect [-h] [-s source-dir] [-p pattern] [-r removed-translations] -n
-                -o output-file [-q]
+trubar collect [-h] [-p pattern] [-s source-dir]
+               [-r removed-translations] [-q] [-n]
+               messages
 ```
 
 Collects strings from the specified source tree, skipping files that don't end with `.py` or whose path includes `tests/test_`. (The latter can be changed in [configuration file](/configuration).) Strings with no effect are ignored; this is aimed at docstrings, but will also skip any other unused strings.
 
 If the output file already exists, it is updated: new messages are merged into it, existing translations are kept, and obsolete messages are removed. The latter can be recorded using the option `-r`.
 
+`messages`
+: The name of the file with messages (preferrably .jaml). If the file does not exist, it is created, otherwise it is updated with new messages and obsolete
+messages are removed.
 
 `-s <path>`, `--source <path>`
 : Defines the root directory of the source tree. Default is the current directory.
@@ -40,11 +44,8 @@ If the output file already exists, it is updated: new messages are merged into i
 `-p <pattern>`, `--pattern <pattern>`
 : Gives a pattern that the file path must include to be considered. The pattern is checked against the entire path; e.g. `-p rm/pi` would match the path `farm/pigs.py:`.
 
-`-o <output-file>`, `--output <output-file>` (required)
-: The name of the output file; extension should be .jaml (preferred) or .yaml. If the file exists, it is updated.
-
 `-r <removed-translations>`, `--removed <removed-translations>`
-: The name of the file for messages that were present in the output file (if it already existed) but are no longer needed.
+: The name of the file for messages that were present in the messages file but no longer needed.
 
 `-n`, `--dry-run`: Run, but do not change the output file. The file with removed messages is still written.
 
@@ -56,18 +57,17 @@ If the output file already exists, it is updated: new messages are merged into i
 
 ```
 trubar translate [-h] [-s source-dir] [-d destination-dir]
-                 [-p pattern]
-                 [--static static-files-dir]
+                 [-p pattern] [--static static-files-dir]
                  [-q] [-v {0,1,2,3}] [-n]
-                 translations
+                 messages
 ```
 
 Translates files with extension .py and writes them to destination directories, and copies all other files. Untranslated strings (marked `null`, `false` or `true`) are kept as they are. The action overwrites any existing files.
 
-`translations` (required)
+`messages`
 : the name of the file with translated messages.
 
-`-s <source-path>`, `--source <source-path>`
+`-s <source-dir>`, `--source <source-dir>`
 : Root directory of the source tree. Default is the current directory.
 
 `-d <dest-path>`, `--dest <dest-path>` (required)
@@ -88,21 +88,21 @@ Translates files with extension .py and writes them to destination directories, 
 `-n`, `--dry-run`
 : Run, but do not write anything.
 
+
 ### Merge
 
 ```
-trubar merge [-h] [-o output-file] [-u unused]
-                  [-p pattern] [-n]
-                   new existing
+trubar merge [-h] [-o output-file] [-u unused] [-p pattern] [-n]
+             translations messages
 ```
 
-Merges translations into another message file. After a new release of the package, one can use `collect` to extract the current set of messages, and `merge` to merge existing translations into it.
+Merges translations into message file.
 
-`source` (required)
+`translations` (required)
 : The "source" file with translations.
 
-`destination` (required)
-: Destination file into which we won't to insert the source translations.
+`messages` (required)
+: File with messages into which the translations from `translations` are merged. This file is modified unless another output file is given.
 
 `-o <output-file>`, `--output <output-file>`
 : The output file name; if omitted, the file given as `destination` is changed.
@@ -119,19 +119,19 @@ Merges translations into another message file. After a new release of the packag
 ### Missing
 
 ```
-trubar missing [-h] [-p pattern] [-m messages] -o output-file
-                      translations
+trubar missing [-h] [-p pattern] [-m all-messages] -o output-file
+               messages
 ```
 
 Prepare a file with missing translations. A translation is missing if the translated message is `null`. Alternatively, the user can pass a file with all messages (option `-m`), and the translation is missing if the translated file either does not include it or has a `null` translation.
 
-`translations` (required)
+`messages` (required)
 : The name of the file with messages.
 
 `-o <output-file>`, `--output <output-file>` (required)
 : The name of the output file.
 
-`-m <msg-file>`, `--messages <msg-file>`
+`-m <msg-file>`, `--all-messages <msg-file>`
 : If given, this file is considered to contain all messages.
 
 `-p <pattern>`, `--pattern <pattern>`
@@ -140,7 +140,7 @@ Prepare a file with missing translations. A translation is missing if the transl
 ### Template
 
 ```
-trubar template [-h] [-p pattern] -o output-file translations
+trubar template [-h] [-p pattern] -o output-file messages
 ```
 
 Create a template from existing translations. The output file will contain all strings that need attention.
@@ -150,7 +150,7 @@ Create a template from existing translations. The output file will contain all s
 - If string is translated, the original is kept, but translation is replaced by `null`.
 - Strings that are not translated (`null`) are kept.
 
-`translations` (required)
+`messages` (required)
 : Existing (preferrably complete) translations into some language.
 
 `-o <output-file`, `--output <output-file>` (required)
@@ -162,14 +162,14 @@ Create a template from existing translations. The output file will contain all s
 ### Stat
 
 ```
-trubar stat [-h] [-p pattern] message-file
+trubar stat [-h] [-p pattern] messages
 ```
 
 Print statistics about messages in the given file.
 
 Here's an example output.
 
-`message-file` (required)
+`messages`
 : File with messages.
 
 `-p <pattern>`, `--pattern <pattern>`
