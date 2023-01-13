@@ -39,8 +39,15 @@ def main() -> None:
         "-o", "--output", required=True, metavar="output-file",
         help="output file")
     parser.add_argument(
+        "-r", "--rejected", metavar="rejected-file", default=None,
+        help="file for rejected translations, if any")
+    parser.add_argument(
         "-q", "--quiet", action="store_true",
         help="supress intermediary outputs")
+    parser.add_argument(
+        "-n", "--dry-run", action="store_true",
+        help="don't write the output file; rejected messages are written, if any"
+    )
 
     parser = add_parser("translate", "Prepare sources with translations")
     parser.add_argument(
@@ -121,8 +128,17 @@ def main() -> None:
 
     if args.action == "collect":
         check_dir_exists(args.source)
+        existing = load(args.output) if os.path.exists(args.output) else None
         messages = collect(args.source, pattern, quiet=args.quiet)
-        dump(messages, args.output)
+        if existing:
+            rejected = merge(existing, messages, pattern,
+                             print_rejections=bool(args.rejected))
+        else:
+            rejected = None
+        if not args.dry_run:
+            dump(messages, args.output)
+        if args.rejected and rejected:
+            dump(rejected, args.rejected)
 
     elif args.action == "translate":
         check_dir_exists(args.source)
