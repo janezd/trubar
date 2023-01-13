@@ -366,8 +366,8 @@ def missing(translations: MsgDict,
 
 
 def merge(additional: MsgDict, existing: MsgDict, pattern: str = "",
-          path: str = "", print_rejections=True) -> MsgDict:
-    rejected: MsgDict = {}
+          path: str = "", print_unused=True) -> MsgDict:
+    unused: MsgDict = {}
     for msg, trans in additional.items():
         if pattern not in msg:
             continue
@@ -375,17 +375,17 @@ def merge(additional: MsgDict, existing: MsgDict, pattern: str = "",
         if msg not in existing:
             if trans.value and (not isinstance(trans.value, dict)
                                 or _any_translations(trans.value)):
-                if print_rejections:
+                if print_unused:
                     print(f"{npath} not in target structure")
-                rejected[msg] = trans
+                unused[msg] = trans
         elif isinstance(trans.value, dict):
             subreject = merge(trans.value, existing[msg].value, "", npath,
-                              print_rejections=print_rejections)
+                              print_unused=print_unused)
             if subreject:
-                rejected[msg] = MsgNode(subreject)
+                unused[msg] = MsgNode(subreject)
         elif trans.value is not None:
             existing[msg] = trans
-    return rejected
+    return unused
 
 
 def template(existing: MsgDict, pattern: str = "") -> MsgDict:
