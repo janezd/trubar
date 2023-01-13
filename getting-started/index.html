@@ -141,7 +141,7 @@ if __name__ == &quot;__main__&quot;:
 <p>and <code>sample/farm/__init__.py</code> is empty.</p>
 <p>Note that, unlike in the gettext framework, messages are not "marked" for translation by being passed through a call to a translation function like <code>_</code>, <code>tr</code> or <code>gettext</code>.</p>
 <h3 id="collecting-messages">Collecting messages</h3>
-<p>To collect all strings in the project, use <a href="/command-line/#collect">collect</a>.</p>
+<p>To collect all strings in the project, use <a href="../command-line/#collect">collect</a>.</p>
 <pre><code>trubar collect -s code/sample sample.jaml
 </code></pre>
 <p>The argument <code>-s</code> gives the root directory. This will usually not be the root of the project, which only contains "administrative" files like setup.py, but the directory with actual sources that need translation.</p>
@@ -158,7 +158,7 @@ farm/pigs.py:
         def `walk`:
             {self.n} little pigs went for a walk: null
 </code></pre>
-<p>See the section about <a href="/message-files">Message files</a> for details about the file format.</p>
+<p>See the section about <a href="../message-files">Message files</a> for details about the file format.</p>
 <h3 id="translating-messages">Translating messages</h3>
 <p>The next step is to edit the .jaml file: <code>null</code>'s need to be replaced by translations or marked in another way. Here's a Slovenian translation.</p>
 <pre><code>__main__.py:
@@ -174,10 +174,10 @@ farm/pigs.py:
         def `walk`:
             {self.n} little pigs went for a walk: {self.n} prašičkov se je šlo sprehajat.
 </code></pre>
-<p>We translated <code>__main__</code> as <code>false</code>, which indicates that this string must not be translated. Other options are explained <a href="/message-files/#translations">later</a>.</p>
+<p>We translated <code>__main__</code> as <code>false</code>, which indicates that this string must not be translated. Other options are explained <a href="../message-files/#translations">later</a>.</p>
 <h3 id="applying-translations">Applying translations</h3>
 <p>In most scenarios, we first need to prepare a copy of the entire project, because Trubar will only copy the files within its scan range. Suppose that <code>../project_copy</code> contains such a copy.</p>
-<p>Now run <a href="/command-line/#translate">translate</a>.</p>
+<p>Now run <a href="../command-line/#translate">translate</a>.</p>
 <pre><code>trubar translate -s code/sample -d ../project_copy/code/sample sample.jaml
 </code></pre>
 <p>That's it.</p>

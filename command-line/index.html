@@ -114,7 +114,7 @@
 <dt><code>-h</code></dt>
 <dd>Prints help and exits.</dd>
 <dt><code>--conf &lt;conf-file&gt;</code></dt>
-<dd>Specifies the <a href="/configuration">configuration file</a>.</dd>
+<dd>Specifies the <a href="../configuration">configuration file</a>.</dd>
 </dl>
 <p>Action must be one of the following:</p>
 <ul>
@@ -130,7 +130,7 @@
                [-r removed-translations] [-q] [-n]
                messages
 </code></pre>
-<p>Collects strings from the specified source tree, skipping files that don't end with <code>.py</code> or whose path includes <code>tests/test_</code>. (The latter can be changed in <a href="/configuration">configuration file</a>.) Strings with no effect are ignored; this is aimed at docstrings, but will also skip any other unused strings.</p>
+<p>Collects strings from the specified source tree, skipping files that don't end with <code>.py</code> or whose path includes <code>tests/test_</code>. (The latter can be changed in <a href="../configuration">configuration file</a>.) Strings with no effect are ignored; this is aimed at docstrings, but will also skip any other unused strings.</p>
 <p>If the output file already exists, it is updated: new messages are merged into it, existing translations are kept, and obsolete messages are removed. The latter can be recorded using the option <code>-r</code>.</p>
 <dl>
 <dt><code>messages</code></dt>
@@ -165,7 +165,7 @@ messages are removed.</dd>
 <dt><code>-p &lt;pattern&gt;</code>, <code>--pattern &lt;pattern&gt;</code></dt>
 <dd>A pattern that the file path must include to be considered.</dd>
 <dt><code>--static &lt;static-files-path&gt;</code></dt>
-<dd>Copies the file from the given path into destination tree; essentially <code>cp -R &lt;static-files-path&gt; &lt;dest-path&gt;/&lt;static-file-path&gt;</code>. This is used for <a href="/localization/#plural-forms">adding modules with target-language related features</a>, like those for plural forms.</dd>
+<dd>Copies the file from the given path into destination tree; essentially <code>cp -R &lt;static-files-path&gt; &lt;dest-path&gt;/&lt;static-file-path&gt;</code>. This is used for <a href="../localization/#plural-forms">adding modules with target-language related features</a>, like those for plural forms.</dd>
 <dt><code>-q</code>, <code>--quiet</code></dt>
 <dd>Supresses output messages, except for critical. Overrides option <code>-v</code>.</dd>
 <dt><code>-v &lt;level&gt;</code>, <code>--verbosity &lt;level&gt;</code></dt>
