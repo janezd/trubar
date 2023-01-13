@@ -26,7 +26,7 @@ Translator can treat a string in approximately three ways.
 - Mark it with `true`, if the strings that could be translated, but doesn't need it for this particular language or culture. A common example would be symbols like `"©️"`.
 - Leave it `null` until (s)he figures out what to do with it.
 
-The difference between `true` and `false` is important only when using this translation to [prepare templates](/scenarios/#preparing-templates) for translations into other languages.
+The difference between `true` and `false` is important only when using this translation to [prepare templates](../scenarios/#preparing-templates) for translations into other languages.
 
 ### Comments
 

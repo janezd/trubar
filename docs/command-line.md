@@ -10,7 +10,7 @@ Trubar is invoked by
 : Prints help and exits.
 
 `--conf <conf-file>`
-: Specifies the [configuration file](/configuration).
+: Specifies the [configuration file](../configuration).
 
 Action must be one of the following:
 
@@ -30,7 +30,7 @@ trubar collect [-h] [-p pattern] [-s source-dir]
                messages
 ```
 
-Collects strings from the specified source tree, skipping files that don't end with `.py` or whose path includes `tests/test_`. (The latter can be changed in [configuration file](/configuration).) Strings with no effect are ignored; this is aimed at docstrings, but will also skip any other unused strings.
+Collects strings from the specified source tree, skipping files that don't end with `.py` or whose path includes `tests/test_`. (The latter can be changed in [configuration file](../configuration).) Strings with no effect are ignored; this is aimed at docstrings, but will also skip any other unused strings.
 
 If the output file already exists, it is updated: new messages are merged into it, existing translations are kept, and obsolete messages are removed. The latter can be recorded using the option `-r`.
 
@@ -77,7 +77,7 @@ Translates files with extension .py and writes them to destination directories, 
 : A pattern that the file path must include to be considered.
 
 `--static <static-files-path>`
-: Copies the file from the given path into destination tree; essentially `cp -R <static-files-path> <dest-path>/<static-file-path>`. This is used for [adding modules with target-language related features](/localization/#plural-forms), like those for plural forms.
+: Copies the file from the given path into destination tree; essentially `cp -R <static-files-path> <dest-path>/<static-file-path>`. This is used for [adding modules with target-language related features](../localization/#plural-forms), like those for plural forms.
 
 `-q`, `--quiet`
 : Supresses output messages, except for critical. Overrides option `-v`.
