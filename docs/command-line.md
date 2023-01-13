@@ -25,7 +25,7 @@ Action must be one of the following:
 ### Collect
 
 ```
-trubar collect [-h] [-s source-dir] [-p pattern] [-r rejected-file] -n
+trubar collect [-h] [-s source-dir] [-p pattern] [-r removed-translations] -n
                 -o output-file [-q]
 ```
 
@@ -43,10 +43,10 @@ If the output file already exists, it is updated: new messages are merged into i
 `-o <output-file>`, `--output <output-file>` (required)
 : The name of the output file; extension should be .jaml (preferred) or .yaml. If the file exists, it is updated.
 
-`-r <rejected-file>`, `--rejected <rejected-file>`
+`-r <removed-translations>`, `--removed <removed-translations>`
 : The name of the file for messages that were present in the output file (if it already existed) but are no longer needed.
 
-`-n`, `--dry-run`: Run, but do not change the output file. The file with rejected messages is still written.
+`-n`, `--dry-run`: Run, but do not change the output file. The file with removed messages is still written.
 
 `-q`, `--quiet`
 : Supresses the output, except critical error messages.
@@ -91,7 +91,7 @@ Translates files with extension .py and writes them to destination directories, 
 ### Merge
 
 ```
-trubar merge [-h] [-o output-file] [-r rejected-file]
+trubar merge [-h] [-o output-file] [-u unused]
                   [-p pattern] [-n]
                    new existing
 ```
@@ -107,7 +107,7 @@ Merges translations into another message file. After a new release of the packag
 `-o <output-file>`, `--output <output-file>`
 : The output file name; if omitted, the file given as `destination` is changed.
 
-`-r <rejected>`, `--rejected <rejected>`
+`-u <unused>`, `--unused <unused>`
 : A name of the file for messages that no longer appear in the sources.
 
 `-p <pattern>`, `--pattern <pattern>`

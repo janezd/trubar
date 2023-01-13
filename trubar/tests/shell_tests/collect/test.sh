@@ -21,19 +21,19 @@ rm tmp/messages.yaml
 
 echo "... merge with existing file"
 cp some_messages.yaml tmp/some_messages.yaml
-print_run 'trubar collect -s ../test_project -o tmp/some_messages.yaml -r tmp/rejected.yaml -q'
+print_run 'trubar collect -s ../test_project -o tmp/some_messages.yaml -r tmp/removed.yaml -q'
 diff tmp/some_messages.yaml exp/merged_messages.yaml
-diff tmp/rejected.yaml exp/rejected.yaml
-rm tmp/some_messages.yaml tmp/rejected.yaml
+diff tmp/removed.yaml exp/removed.yaml
+rm tmp/some_messages.yaml tmp/removed.yaml
 
 echo "... merge with existing file, dry run"
 cp some_messages.yaml tmp/some_messages.yaml
-print_run 'trubar collect -s ../test_project -o tmp/some_messages.yaml -r tmp/rejected.yaml -n -q'
+print_run 'trubar collect -s ../test_project -o tmp/some_messages.yaml -r tmp/removed.yaml -n -q'
 diff tmp/some_messages.yaml some_messages.yaml
-diff tmp/rejected.yaml exp/rejected.yaml
-rm tmp/some_messages.yaml tmp/rejected.yaml
+diff tmp/removed.yaml exp/removed.yaml
+rm tmp/some_messages.yaml tmp/removed.yaml
 
-echo "... merge with existing file, dry run, no rejected"
+echo "... merge with existing file, dry run, no removed"
 cp some_messages.yaml tmp/some_messages.yaml
 print_run 'trubar collect -s ../test_project -o tmp/some_messages.yaml -n -q'
 diff tmp/some_messages.yaml some_messages.yaml

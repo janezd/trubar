@@ -39,14 +39,14 @@ def main() -> None:
         "-o", "--output", required=True, metavar="output-file",
         help="output file")
     parser.add_argument(
-        "-r", "--rejected", metavar="rejected-file", default=None,
-        help="file for rejected translations, if any")
+        "-r", "--removed", metavar="removed-translations", default=None,
+        help="file for removed translations, if any")
     parser.add_argument(
         "-q", "--quiet", action="store_true",
         help="supress intermediary outputs")
     parser.add_argument(
         "-n", "--dry-run", action="store_true",
-        help="don't write the output file; rejected messages are written, if any"
+        help="don't write the output file; removed translations (if any) are written"
     )
 
     parser = add_parser("translate", "Prepare sources with translations")
@@ -85,8 +85,8 @@ def main() -> None:
         "-o", "--output", metavar="output-file",
         help="output file; if omitted, existing file will updated")
     parser.add_argument(
-        "-r", "--rejected", metavar="rejected-file", default=None,
-        help="file for rejected translations (if any)")
+        "-u", "--unused", metavar="unused", default=None,
+        help="file for unused translations (if any)")
     parser.add_argument(
         "-n", "--dry-run", action="store_true",
         help="don't change translations file, just check the structure"
@@ -131,14 +131,14 @@ def main() -> None:
         existing = load(args.output) if os.path.exists(args.output) else None
         messages = collect(args.source, pattern, quiet=args.quiet)
         if existing:
-            rejected = merge(existing, messages, pattern,
-                             print_rejections=bool(args.rejected))
+            removed = merge(existing, messages, pattern,
+                            print_unused=bool(args.removed))
         else:
-            rejected = None
+            removed = None
         if not args.dry_run:
             dump(messages, args.output)
-        if args.rejected and rejected:
-            dump(rejected, args.rejected)
+        if args.removed and removed:
+            dump(removed, args.removed)
 
     elif args.action == "translate":
         check_dir_exists(args.source)
@@ -156,12 +156,12 @@ def main() -> None:
     elif args.action == "merge":
         additional = load(args.translations)
         existing = load(args.pot)
-        rejected = merge(additional, existing, pattern,
-                         print_rejections=bool(args.rejected))
+        unused = merge(additional, existing, pattern,
+                       print_unused=bool(args.unused))
         if not args.dry_run:
             dump(existing, args.output or args.pot)
-        if args.rejected and rejected:
-            dump(rejected, args.rejected)
+        if args.unused and unused:
+            dump(unused, args.unused)
 
     elif args.action == "template":
         existing = load(args.translations)

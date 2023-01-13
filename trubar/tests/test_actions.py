@@ -432,10 +432,9 @@ def `m` not in target structure
 """)
 
         with io.StringIO() as buf, redirect_stdout(buf):
-            merge(additional, existing, print_rejections=False)
+            merge(additional, existing, print_unused=False)
             printed = buf.getvalue()
             self.assertEqual(printed, "")
-
 
     def test_template(self):
         messages = {
