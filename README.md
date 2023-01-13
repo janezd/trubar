@@ -12,10 +12,10 @@ Use pip to install Trubar
 pip install trubar`
 ```
 
-Collect all strings in your project by
+Collect (or update) all strings in your project by
 
 ```sh
-trubar collect -s myproject/source -o messages.jaml
+trubar collect -s myproject/source messages.jaml
 ```
 
 Add translations to messages.jaml and then run
