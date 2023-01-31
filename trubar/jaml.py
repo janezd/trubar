@@ -50,19 +50,19 @@ def readlines(lines):
     def error(msg, line=None):
         raise JamlError(f"Line {line or linegen.line_no}: {msg}") from None
 
-    def read_triple_quoted_block(line, lineno):
+    def read_quoted(line, lineno):
         block = ""
-        quotes, line = line[:3], line[3:]
-        while quotes not in line:
+        q, line = line[0], line[1:]
+        while (mo := re.match(f"((?:[^{q}]|(?:{q}{q}))*){q}(?!{q})(.*)", line)
+                ) is None:
             block += line + "\n"
             try:
                 line, _ = next(linegen)
             except StopIteration:
-                error(f"file ends before the end of triple-quoted block",
-                      lineno)
-        inside, _, after = line.partition(quotes)
+                error(f"file ends before the end of quoted string", lineno)
+        inside, after = mo.groups()
         block += inside
-        return block.replace(("\\" + quotes[0]) * 3, quotes), after
+        return block.replace(2 * q, q), after
 
     def read_block(prev_indent, extra_indent):
         if extra_indent.strip():
@@ -125,12 +125,12 @@ def readlines(lines):
             comment_start = comment_start or linegen.line_no
             continue
 
-        # Get key and value
-        # Key is triple-quoted block
-        if line[:3] in ("'''", '"""'):
-            key, after = read_triple_quoted_block(line, linegen.line_no)
+        # Get key
+        # Key is quoted
+        if line[0] in "'\"":
+            key, after = read_quoted(line, linegen.line_no)
             if after[:2] != ": ":
-                error("triple-quoted key must be followed by a ': '")
+                error("quoted key must be followed by a ': '")
             else:
                 value = after[2:].lstrip()
         # block - backward compatibility
@@ -146,45 +146,33 @@ def readlines(lines):
             if not value.startswith(": "):
                 error("block key must be followed by ': '")
             value = value[2:].lstrip()
-        # Key is quoted
-        elif line[0] in "\"'":
-            q = line[0]
-            mo = re.match(
-                rf"{q}(?P<key>([^{q}]|({q}{q}))*?){q}\s*:\s+(?P<value>.*)",
-                line)
-            if mo is None:
-                raise error("invalid quoted key")
-            key, value = mo.group("key", "value")
-            key = key.replace(2 * q, q)
         # Key is normal
         else:
-            mo = re.match(r"(.*?):(\s+|$)(.*)", line)
+            mo = re.match(r"(.*?):(?:\s+|$)(.*)", line)
             if mo is None:
                 if ":" in line:
                     raise error("colon at the end of the key should be "
                                 "followed by a space or a new line")
                 else:
                     raise error("key followed by colon expected")
-            key, _, value = mo.groups()
+            key, value = mo.groups()
 
+        # Get value
         # `value` is lstripped, but may contain whitespace at the end
-        # This is needed for triple-quoted values
+        # This is observed in quoted values
         # Leaves
-        if svalue := value.strip():
-            # Value is triple-quoted block
-            if value[:3] in ("'''", '"""'):
-                value, after = read_triple_quoted_block(value, linegen.line_no)
+        if value.strip():
+            # Value is quoted block
+            if value[0] in "'\"":
+                value, after = read_quoted(value, linegen.line_no)
                 if after.strip():
-                    error("triple-quoted value must be followed by end of line")
+                    error("quoted value must be followed by end of line")
             # Value is block - for backward compatibility
             elif value[0] in "|":
                 value = read_block(indent, value[1:])
-            # value is quoted
-            elif _is_quoted_value(svalue):
-                value = svalue[1:-1]
             else:
                 value = {"true": True, "false": False, "null": None
-                         }.get(svalue, value)
+                         }.get(value.strip(), value)
             stack[-1][1][key] = MsgNode(value, comments or None)
         # Internal nodes
         else:
@@ -203,32 +191,20 @@ def readlines(lines):
 
 
 def dump(d, indent=""):
-    def dumpb(s):
-        q = "'''" if '"""' in s else '"""'
-        s.replace(q, ("\\" + q[0]) * 3)
-        return f"{q}{s}{q}"
-
-    def dumpkey_msg(s):
-        if "\n" in s:
-            return dumpb(s)
-        if ": " in s or s[0] in " #\"'|" or s[-1] == " ":
+    def quotescape(s, allow_colon):
+        if "\n" in s \
+                or ": " in s and not allow_colon \
+                or s[0] in " #\"'|" \
+                or s[-1] in " \t\n":
             q = '"' if "'" in s else "'"
             return f"{q}{s.replace(q, 2 * q)}{q}"
         return s
 
     def dumpval(s):
-        trans = {True: "true", False: "false", None: "null",
-                 "": '""', "|": '"|"'}
+        trans = {True: "true", False: "false", None: "null", "": '""'}
         if s in trans:
             return trans[s]
-        if "\n" in s[1:-1] and len(s) > 80:
-            return dumpb(s)
-        # if value would be recognized as quoted, it must be quoted
-        # leading or trailing spaces also require quoting
-        if _is_quoted_value(s) or s[0] == " " or s[-1] == " ":
-            q = '"' if s[0] == "'" else "'"
-            return q + s + q
-        return s
+        return quotescape(s, True)
 
     res = ""
     for key, node in d.items():
@@ -237,9 +213,5 @@ def dump(d, indent=""):
         if isinstance(node.value, dict):
             res += f"{indent}{key}:\n{dump(node.value, indent + '    ')}"
         else:
-            res += f"{indent}{dumpkey_msg(key)}: {dumpval(node.value)}\n"
+            res += f"{indent}{quotescape(key, False)}: {dumpval(node.value)}\n"
     return res
-
-
-def _is_quoted_value(value):
-    return len(value) > 1 and value[0] in "\"'" and value[-1] == value[0]

@@ -182,20 +182,20 @@ abc:
         self.assertEqual(tr[key].value, value)
         self.assertEqual(tr[key.replace("ghi", "ghi2")].value, value)
 
-    def test_read_triple_quoted_blocks(self):
+    def test_read_quoted_blocks(self):
         self.assertEqual(jaml.read('''a/b.py:
     def `f`:
-        """a
+        "a
 b
-c""": abc
-        abc: """
+c": abc
+        abc: "
      a
 ''' + " " * 5 + '''
    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-"""
+"
         foo: false
-        def: """a
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"""
+        def: "a
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 x/y.py: null
         '''),
          {"a/b.py":
@@ -212,28 +212,20 @@ x/y.py: null
     )
 
     def test_read_quotes_in_values(self):
-        text = """
-foo1: "bar
-foo2: bar"
-foo3: "bar"
-foo4: "ba"r"
-foo5: 'bar
-foo6: bar'
+        text = '''
+foo1: "bar"
+foo2: """bar"
+foo4: "ba""r"
+foo5: "bar"""
 foo7: 'bar' 
-foo8: 'ba'r' 
+foo8: 'ba''r' 
 foo9: 'ba"r'
-foo10: "bar'
-foo11: "bar'
-foo12: "ba"r" 
-foo13: 'ba'r'
-foo14: 'ba'r '
-"""
+foo12: "bar''" 
+'''
         msgs = jaml.read(text)
-        self.assertEqual([node.value for node in msgs.values()],
-                         ['"bar', 'bar"', 'bar', 'ba"r',
-                          "'bar", "bar'", "bar", "ba'r",
-                          'ba"r', "\"bar'", "\"bar'",
-                          'ba"r', "ba'r", "ba'r "])
+        self.assertEqual(
+            [node.value for node in msgs.values()],
+            ["bar", "\"bar", "ba\"r", "bar\"", "bar", "ba'r", 'ba"r', "bar''"])
 
     def test_read_quotes_in_keys(self):
         text = """
@@ -346,16 +338,14 @@ ghi: jkl
 
     def test_syntax_errors(self):
         self.assertRaisesRegex(
-            jaml.JamlError, "Line 1: invalid quoted key", jaml.read, "' ''x: y")
-        self.assertRaisesRegex(
             jaml.JamlError, "Line 1: file ends.*", jaml.read, "'''x: y")
         self.assertRaisesRegex(
-            jaml.JamlError, "Line 1: invalid quoted key", jaml.read, "'x: y")
+            jaml.JamlError, "Line 1: file ends.*", jaml.read, "'x: y")
         self.assertRaisesRegex(
-            jaml.JamlError, "Line 2: triple-quoted key must be followed .*",
+            jaml.JamlError, "Line 2: quoted key must be followed .*",
             jaml.read, '"""x\ny"""\na:b')
         self.assertRaisesRegex(
-            jaml.JamlError, "Line 2: triple-quoted value must be followed .*",
+            jaml.JamlError, "Line 2: quoted value must be followed .*",
             jaml.read, 'x: """\na""": b')
         self.assertRaisesRegex(
             jaml.JamlError, "Line 3: block key must be followed .*",
@@ -385,7 +375,7 @@ ghi: jkl
             tuv: bdf""",
         )
         self.assertRaisesRegex(
-            jaml.JamlError, "Line 4: invalid quoted key", jaml.read, """
+            jaml.JamlError, "Line 4: file ends", jaml.read, """
         abc:
             def:
                 "ghi: jkl
@@ -505,17 +495,17 @@ class `A`: false
                 }
         self.assertEqual(jaml.dump(tree), '''a/b.py:
     def `f`:
-        """a
+        'a
 b
-c""": abc
-        abc: """
+c': abc
+        abc: '
      a
 ''' + " " * 5 + '''
    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-"""
+'
         foo: false
-        def: """a
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"""
+        def: 'a
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 x/y.py: null
 ''')
 
