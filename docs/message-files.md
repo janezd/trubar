@@ -36,21 +36,17 @@ A comment is always associated with some particular translation or entire functi
 
 ### Quotes
 
-Rules for quoting original messages and translations are different. The former - which are produced automatically - require more quotes to make the latter - which are written by human -- simpler. Here are the rules for the latter, that is, translations.
+- Translation must be quoted if it
 
-- Translations need to be quoted if
+    - begins or end with space,
+    - begins with a quote (single or double)
+    - it is (literally) `"false"`, `"true"` or `"null"`,
 
-    - they begin or end with space,
-    - the translation is (literally) `"false"`, `"true"` or `"null"`,
-    - the actual content of the string begins and ends with a quote of the same type, in which case jaml parser would interpret literal quotes as quotes.
+(In addition, keys are quoted if they contain a colon followed by a space. But translator doesn't need to care because keys are provided by Trubar.)
 
-    You will most likely only encounter the first case.
+Single- and double-quoted strings are treated the same. The translation must begin and end with the same type of quote. The quotes used in message files are not related to the quotes used in source code. In the introductory example, all string in code use double quotes, while some strings in the message file are single-quoted and others double quoted, for convenience.
 
-- Single- and double-quoted strings are treated the same.
-- The translation must begin and end with the same type of quote.
-- A single-quoted string may contain double quotes and vice-versa; such quotes are treated literally.
-- Any single (double) quotes within a single (double) quoted strings must be doubled, as in `'don''t forget to double the quotes.'`.
-- The quotes used in message files are not related to the quotes used in source code. In the introductory example, all string in code use double quotes, while some strings in the message file are single-quoted and others double quoted, for convenience.
+A single-quoted string may contain double quotes and vice-versa; such quotes are treated literally. Any single (double) quotes within a single (double) quoted strings must be doubled, as in `'don''t forget to double the quotes.'`.
 
 ### Colons
 
@@ -62,25 +58,8 @@ Colons in translations have no special meaning. Consider the following line from
 
 In standard yaml, the translation would need quotes because it includes a colon followed by space. In Jaml, this rule only applies to keys, which translator doesn't care about. Therefore: use colons at will.
 
-### Blocks
+### Multiline messages
 
-Multiline strings are usually stored as multiline blocks. These are indicated by using a pipe symbol (`|`) as the only symbol in the line (for original messages) or after the colon (for translations). The proceeding lines must be indented. The indendation level is arbitrary and is deduced from the first line; if it starts with 20 spaces, the leading 20 spaces will be removed from every following line of the block. The block ends at the first line that is indented by less than the first line of the block.
+Strings can span over multiple lines. All whitespace in multiline strings is retained.
 
-Here is an actual example.
-
-```
-widgets/data/__init__.py:
-    Widgets for data manipulation.: Gradniki za obdelavo podatkov.
-    |
-        This category contains widgets for data manipulation. This includes
-        loading, importing, saving, preprocessing, selection, etc.
-    : |
-        Kategorija vsebuje gradnike za delo s podatki, na primer branje,
-        shranjevanje, spreminjanje, izbiranje in podobno.
-```
-
-If the first line of translation contains leading spaces and thus cannot serve to indicate the indentation, the indendation must be indicated by a number following the `|` symbol. E.g., if the first line in indented by 4 additional spaces, the block would begin with `|4`.
-
-Block messages can be translated with non-block strings and vice-versa.
-
-You will probably only use blocks when the key already uses them. Copy the key and replace the text.
+JAML does not support any of the more complicated yaml syntax for multiline blocks.
