@@ -71,12 +71,14 @@ class TestUtils(TestBase):
             self.assertRaises(SystemExit, load, "no such file")
             self.assertIn("not found", buf.getvalue())
 
-    def test_loader_verifies_sanity(self):
+    @patch("builtins.print")
+    def test_loader_verifies_sanity(self, a_print):
         fn = self.prepare_file("x.jaml", """
         class `A`:
             def `foo`: bar
         """)
         self.assertRaises(SystemExit, load, fn)
+        a_print.assert_called()
 
     def test_check_sanity(self):
         # unexpected namespace
