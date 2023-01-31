@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import patch
 
 from trubar import jaml
-from trubar.jaml import LineGenerator
 from trubar.messages import MsgNode
 
 
@@ -63,124 +62,6 @@ class `B`:
                  value={'nothing': MsgNode(value='nič')
              })
             })
-
-    def test_read_pipe_blocks(self):
-        text = """
-class `A`:
-    foo: |
-            block
-            translation
-    a: b
-    |
-       block
-       key
-    : and a simple translation
-    def `f`:
-        simple key: |
-                       block
-                         translation
-                       with spaces
-    def `g`:
-        |
-           block key
-        : |
-           translation"""
-        self.assertEqual(
-            jaml.read(text),
-            {'class `A`': MsgNode(value={
-                'foo': MsgNode(value='block\ntranslation'),
-                'a': MsgNode(value='b'),
-                'block\nkey': MsgNode(value='and a simple translation'),
-                'def `f`': MsgNode(value={
-                    'simple key': MsgNode(value='block\n  translation\nwith spaces'),
-                    }),
-                'def `g`': MsgNode(
-                    value={'block key': MsgNode(value='translation')},
-                    comments=None)
-            })})
-
-        text = """
-abc:
-    |
-
-def
-  ghi
-
-   jkl
-mno
-|||
-    : ghu
-    pqr: stu"""
-        self.assertEqual(
-            jaml.read(text),
-            {'abc': MsgNode(value={
-                'def\n  ghi\n\n   jkl\nmno': MsgNode(value='ghu',),
-                'pqr': MsgNode(value='stu', comments=None)},)})
-
-        text = """
-abc:
-    def: |
-ghi
-
-jkl
-mno
-|||
-    pqr: stu"""
-        self.assertEqual(
-            jaml.read(text),
-            {'abc': MsgNode(
-                value={'def': MsgNode(value='ghi\n\njkl\nmno', comments=None),
-                       'pqr': MsgNode(value='stu', comments=None)},
-                comments=None)}
-        )
-        text = """
-abc:
-    def: | 2
-        ghi
-
-        jkl
-    pqr: stu"""
-        self.assertEqual(
-            jaml.read(text),
-            {'abc': MsgNode(
-                value={'def': MsgNode(value='  ghi\n\n  jkl', comments=None),
-                       'pqr': MsgNode(value='stu', comments=None)},
-                comments=None)}
-        )
-
-        text = """
-abc:
-    |
-       ghi
-                abc
-                    dfg
-               jkl
-    : |
-                hjk
-                              ghj
-                                   lkj
-                    pqr
-    |
-       ghi2
-                abc
-                    dfg
-               jkl
-    : |
-                hjk
-                              ghj
-                                   lkj
-                    pqr"""
-        key = """ghi
-         abc
-             dfg
-        jkl"""
-        value = """hjk
-              ghj
-                   lkj
-    pqr"""
-        tr = jaml.read(text)["abc"].value
-        self.assertEqual(tr[key].value, value)
-        self.assertEqual(tr[key.replace("ghi", "ghi2")].value, value)
 
     def test_read_quoted_blocks(self):
         self.assertEqual(jaml.read('''a/b.py:
@@ -343,13 +224,10 @@ ghi: jkl
             jaml.JamlError, "Line 1: file ends.*", jaml.read, "'x: y")
         self.assertRaisesRegex(
             jaml.JamlError, "Line 2: quoted key must be followed .*",
-            jaml.read, '"""x\ny"""\na:b')
+            jaml.read, '"x\ny"\na:b')
         self.assertRaisesRegex(
             jaml.JamlError, "Line 2: quoted value must be followed .*",
-            jaml.read, 'x: """\na""": b')
-        self.assertRaisesRegex(
-            jaml.JamlError, "Line 3: block key must be followed .*",
-            jaml.read, '|\n    x\na:b')
+            jaml.read, 'x: "\na": b')
         self.assertRaisesRegex(
             jaml.JamlError,
             "Line 1: colon at the end of the key should be "
@@ -358,13 +236,6 @@ ghi: jkl
     def test_format_errors(self):
         # This function checks for exact error messages. While this is not
         # a good practice in general, it makes these tests more readable
-        self.assertRaisesRegex(
-            jaml.JamlError, "Line 4: block must be indented", jaml.read, """
-        abc:
-            |
-            def
-            : ghi"""
-        )
         self.assertRaisesRegex(
             jaml.JamlError, "Line 3: key followed by colon expected", jaml.read, """
         abc:
@@ -382,34 +253,6 @@ ghi: jkl
             jkl: mno
         prs:
             tuv: bdf""",
-        )
-        self.assertRaisesRegex(
-            jaml.JamlError,
-            "Line 5: missing value after block key", jaml.read, """
-        abc:
-            |
-              def
-              : ghi"""
-        )
-        self.assertRaisesRegex(
-            jaml.JamlError,
-            "Line 5: value after block key must be aligned with key",
-            jaml.read, """
-        abc:
-            |
-                def
-             : ghi
-              """
-        )
-        self.assertRaisesRegex(
-            jaml.JamlError,
-            "Line 5: value after block key must be aligned with key",
-            jaml.read, """
-        abc:
-            |
-                def
-          : ghi
-              """
         )
 
     @patch("trubar.jaml.read")
@@ -508,47 +351,6 @@ c': abc
 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 x/y.py: null
 ''')
-
-
-class LineGeneratorTest(unittest.TestCase):
-    def test_generator(self):
-        gen = LineGenerator("""
-abc
-    def
-  ghi
-"""[1:].splitlines())
-        s, i = next(gen)
-        self.assertEqual(s, "abc")
-        self.assertEqual(i, 0)
-        self.assertEqual(gen.line_no, 1)
-
-        s, i = next(gen)
-        self.assertEqual(s, "    def")
-        self.assertEqual(i, 4)
-        self.assertEqual(gen.line_no, 2)
-        gen.put_back()
-        self.assertEqual(gen.line_no, 2)
-        s, i = next(gen)
-        self.assertEqual(s, "    def")
-        self.assertEqual(i, 4)
-        self.assertEqual(gen.line_no, 2)
-        gen.put_back()
-        s, i = next(gen)
-        self.assertEqual(s, "    def")
-        self.assertEqual(i, 4)
-        self.assertEqual(gen.line_no, 2)
-        gen.put_back()
-        gen.put_back()
-        self.assertEqual(gen.line_no, 2)
-        s, i = next(gen)
-        self.assertEqual(s, "    def")
-        self.assertEqual(i, 4)
-        self.assertEqual(gen.line_no, 2)
-
-        s, i = next(gen)
-        self.assertEqual(s, "  ghi")
-        self.assertEqual(i, 2)
-        self.assertEqual(gen.line_no, 3)
 
 
 if __name__ == "__main__":

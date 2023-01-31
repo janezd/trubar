@@ -14,80 +14,28 @@ def read(text):
     return readlines(text.splitlines())
 
 
-class LineGenerator:
-    def __init__(self, lines):
-        self.__linegen = iter(lines)
-        self.__line_no = 0
-        self.__to_yield = None
-        self.__go_ahead = True
-
-    @property
-    def line_no(self):
-        return self.__line_no
-
-    def __prepare(self):
-        line = next(self.__linegen)
-        self.__line_no += 1
-        self.__to_yield = line, len(line) - len(line.lstrip())
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self.__go_ahead:
-            self.__prepare()
-        self.__go_ahead = True
-        return self.__to_yield
-
-    def put_back(self):
-        self.__go_ahead = False
-
-
 def readlines(lines):
     # prevent circular import, pylint: disable=import-outside-toplevel
     from trubar.messages import MsgNode
 
     def error(msg, line=None):
-        raise JamlError(f"Line {line or linegen.line_no}: {msg}") from None
+        raise JamlError(f"Line {line or lineno}: {msg}") from None
 
-    def read_quoted(line, lineno):
+    def read_quoted(line):
+        nonlocal lineno
+        start_line = lineno
         block = ""
         q, line = line[0], line[1:]
         while (mo := re.match(f"((?:[^{q}]|(?:{q}{q}))*){q}(?!{q})(.*)", line)
                 ) is None:
             block += line + "\n"
             try:
-                line, _ = next(linegen)
+                lineno, line = next(linegen)
             except StopIteration:
-                error(f"file ends before the end of quoted string", lineno)
+                error("file ends before the end of quoted string", start_line)
         inside, after = mo.groups()
         block += inside
         return block.replace(2 * q, q), after
-
-    def read_block(prev_indent, extra_indent):
-        if extra_indent.strip():
-            try:
-                block_indent = prev_indent + int(extra_indent)
-            except ValueError:
-                error("block indentation must be a number")
-        else:
-            block_indent = None
-        block = ""
-        for line, indent in linegen:
-            if block_indent is None:
-                if not line.strip():
-                    continue
-                if indent and indent <= prev_indent:
-                    raise error("block must be indented")
-                block_indent = indent
-            elif line.strip():
-                if indent < block_indent:
-                    linegen.put_back()
-                    break
-                if block_indent == 0 and line == "|||":
-                    break
-            block += line[block_indent:] + "\n"
-        return block[:-1]
 
     def check_no_comments():
         if comments:
@@ -97,12 +45,14 @@ def readlines(lines):
     stack = [(-1, items, True)]
     comments = []
     comment_start = None
-    linegen = LineGenerator(lines)
-    for line, indent in linegen:
+    linegen = enumerate(lines, start=1)
+    for lineno, line in linegen:
         # Skip empty lines
         if not line.strip():
             continue
-        line = line[indent:]
+        sline = line.lstrip()
+        indent = len(line) - len(sline)
+        line = sline
 
         # Indentation
         last_indent, _, indent_expected = stack[-1]
@@ -122,31 +72,16 @@ def readlines(lines):
         # Gather comments
         if line[0] == "#":
             comments.append(line)
-            comment_start = comment_start or linegen.line_no
+            comment_start = comment_start or lineno
             continue
 
         # Get key
-        # Key is quoted
         if line[0] in "'\"":
-            key, after = read_quoted(line, linegen.line_no)
+            key, after = read_quoted(line)
             if after[:2] != ": ":
                 error("quoted key must be followed by a ': '")
             else:
                 value = after[2:].lstrip()
-        # block - backward compatibility
-        elif line[0] == "|":
-            key = read_block(indent, line[1:])
-            try:
-                line, value_indent = next(linegen)
-            except StopIteration:
-                error("missing value after block key")
-            if value_indent != indent:
-                error("value after block key must be aligned with key")
-            value = line[indent:]
-            if not value.startswith(": "):
-                error("block key must be followed by ': '")
-            value = value[2:].lstrip()
-        # Key is normal
         else:
             mo = re.match(r"(.*?):(?:\s+|$)(.*)", line)
             if mo is None:
@@ -158,18 +93,14 @@ def readlines(lines):
             key, value = mo.groups()
 
         # Get value
-        # `value` is lstripped, but may contain whitespace at the end
-        # This is observed in quoted values
+        # `value` is lstripped, but may contain whitespace at the end, which is
+        # included in quoted values
         # Leaves
         if value.strip():
-            # Value is quoted block
             if value[0] in "'\"":
-                value, after = read_quoted(value, linegen.line_no)
+                value, after = read_quoted(value)
                 if after.strip():
                     error("quoted value must be followed by end of line")
-            # Value is block - for backward compatibility
-            elif value[0] in "|":
-                value = read_block(indent, value[1:])
             else:
                 value = {"true": True, "false": False, "null": None
                          }.get(value.strip(), value)
