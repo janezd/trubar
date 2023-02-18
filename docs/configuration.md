@@ -26,4 +26,4 @@ The available options are
 : A regular expression for filtering out the files that should not be translated. The primary use for this is to exclude unit tests.
 
 `encoding` (default: system locale)
-: Characted encoding for .jaml files, such as `"utf-8"` or `"cp-1252".
+: Characted encoding for .jaml files, such as `"utf-8"` or `"cp-1252"`.
