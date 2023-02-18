@@ -131,7 +131,7 @@ def main() -> None:
         if os.path.exists(args.messages):
             existing = load(args.messages)
             removed = merge(existing, messages, pattern,
-                            print_unused=bool(args.removed))
+                            print_unused=not args.removed)
             if args.removed and removed:
                 dump(removed, args.removed)
         if not args.dry_run:

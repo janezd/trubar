@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import patch
 
 from trubar import jaml
-from trubar.jaml import LineGenerator
 from trubar.messages import MsgNode
 
 
@@ -64,147 +63,50 @@ class `B`:
              })
             })
 
-    def test_read_blocks(self):
-        text = """
-class `A`:
-    foo: |
-            block
-            translation
-    a: b
-    |
-       block
-       key
-    : and a simple translation
+    def test_read_quoted_blocks(self):
+        self.assertEqual(jaml.read('''a/b.py:
     def `f`:
-        simple key: |
-                       block
-                         translation
-                       with spaces
-    def `g`:
-        |
-           block key
-        : |
-           translation"""
-        self.assertEqual(
-            jaml.read(text),
-            {'class `A`': MsgNode(value={
-                'foo': MsgNode(value='block\ntranslation'),
-                'a': MsgNode(value='b'),
-                'block\nkey': MsgNode(value='and a simple translation'),
-                'def `f`': MsgNode(value={
-                    'simple key': MsgNode(value='block\n  translation\nwith spaces'),
-                    }),
-                'def `g`': MsgNode(
-                    value={'block key': MsgNode(value='translation')},
-                    comments=None)
-            })})
-
-        text = """
-abc:
-    |
-
-def
-  ghi
-
-   jkl
-mno
-|||
-    : ghu
-    pqr: stu"""
-        self.assertEqual(
-            jaml.read(text),
-            {'abc': MsgNode(value={
-                'def\n  ghi\n\n   jkl\nmno': MsgNode(value='ghu',),
-                'pqr': MsgNode(value='stu', comments=None)},)})
-
-        text = """
-abc:
-    def: |
-ghi
-
-jkl
-mno
-|||
-    pqr: stu"""
-        self.assertEqual(
-            jaml.read(text),
-            {'abc': MsgNode(
-                value={'def': MsgNode(value='ghi\n\njkl\nmno', comments=None),
-                       'pqr': MsgNode(value='stu', comments=None)},
-                comments=None)}
-        )
-        text = """
-abc:
-    def: | 2
-        ghi
-
-        jkl
-    pqr: stu"""
-        self.assertEqual(
-            jaml.read(text),
-            {'abc': MsgNode(
-                value={'def': MsgNode(value='  ghi\n\n  jkl', comments=None),
-                       'pqr': MsgNode(value='stu', comments=None)},
-                comments=None)}
-        )
-
-        text = """
-abc:
-    |
-       ghi
-                abc
-                    dfg
-               jkl
-    : |
-                hjk
-                              ghj
-                                   lkj
-                    pqr
-    |
-       ghi2
-                abc
-                    dfg
-               jkl
-    : |
-                hjk
-                              ghj
-                                   lkj
-                    pqr"""
-        key = """ghi
-         abc
-             dfg
-        jkl"""
-        value = """hjk
-              ghj
-                   lkj
-    pqr"""
-        tr = jaml.read(text)["abc"].value
-        self.assertEqual(tr[key].value, value)
-        self.assertEqual(tr[key.replace("ghi", "ghi2")].value, value)
+        "a
+b
+c": abc
+        abc: "
+     a
+''' + " " * 5 + '''
+   bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+"
+        foo: false
+        def: "a
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+x/y.py: null
+        '''),
+         {"a/b.py":
+             MsgNode(
+                 value={"def `f`": MsgNode({
+                     "a\nb\nc": MsgNode("abc"),
+                     "abc": MsgNode(
+                         "\n     a\n     \n   " + "b" * 100 + "\n"),
+                     "foo": MsgNode(False),
+                     "def": MsgNode("a\n" + "b" * 100),
+                 })}),
+             "x/y.py": MsgNode(None)
+         }
+    )
 
     def test_read_quotes_in_values(self):
-        text = """
-foo1: "bar 
-foo2: bar" 
-foo3: "bar" 
-foo4: "ba"r" 
-foo5: 'bar 
-foo6: bar' 
+        text = '''
+foo1: "bar"
+foo2: """bar"
+foo4: "ba""r"
+foo5: "bar"""
 foo7: 'bar' 
-foo8: 'ba'r' 
-foo9: 'ba"r' 
-foo10: "bar' 
-foo11: "bar' 
-foo12: "ba"r" 
-foo13: 'ba'r'
-foo14: 'ba'r '
-"""
+foo8: 'ba''r' 
+foo9: 'ba"r'
+foo12: "bar''" 
+'''
         msgs = jaml.read(text)
-        self.assertEqual([node.value for node in msgs.values()],
-                         ['"bar', 'bar"', 'bar', 'ba"r',
-                          "'bar", "bar'", "bar", "ba'r",
-                          'ba"r', "\"bar'", "\"bar'",
-                          'ba"r', "ba'r", "ba'r "])
+        self.assertEqual(
+            [node.value for node in msgs.values()],
+            ["bar", "\"bar", "ba\"r", "bar\"", "bar", "ba'r", 'ba"r', "bar''"])
 
     def test_read_quotes_in_keys(self):
         text = """
@@ -317,9 +219,15 @@ ghi: jkl
 
     def test_syntax_errors(self):
         self.assertRaisesRegex(
-            jaml.JamlError, "Line 1: invalid quoted key", jaml.read, "'''x: y")
+            jaml.JamlError, "Line 1: file ends.*", jaml.read, "'''x: y")
         self.assertRaisesRegex(
-            jaml.JamlError, "Line 1: invalid quoted key", jaml.read, "'x: y")
+            jaml.JamlError, "Line 1: file ends.*", jaml.read, "'x: y")
+        self.assertRaisesRegex(
+            jaml.JamlError, "Line 2: quoted key must be followed .*",
+            jaml.read, '"x\ny"\na:b')
+        self.assertRaisesRegex(
+            jaml.JamlError, "Line 2: quoted value must be followed .*",
+            jaml.read, 'x: "\na": b')
         self.assertRaisesRegex(
             jaml.JamlError,
             "Line 1: colon at the end of the key should be "
@@ -328,13 +236,6 @@ ghi: jkl
     def test_format_errors(self):
         # This function checks for exact error messages. While this is not
         # a good practice in general, it makes these tests more readable
-        self.assertRaisesRegex(
-            jaml.JamlError, "Line 4: block must be indented", jaml.read, """
-        abc:
-            |
-            def
-            : ghi"""
-        )
         self.assertRaisesRegex(
             jaml.JamlError, "Line 3: key followed by colon expected", jaml.read, """
         abc:
@@ -345,41 +246,13 @@ ghi: jkl
             tuv: bdf""",
         )
         self.assertRaisesRegex(
-            jaml.JamlError, "Line 4: invalid quoted key", jaml.read, """
+            jaml.JamlError, "Line 4: file ends", jaml.read, """
         abc:
             def:
                 "ghi: jkl
             jkl: mno
         prs:
             tuv: bdf""",
-        )
-        self.assertRaisesRegex(
-            jaml.JamlError,
-            "Line 5: missing value after block key", jaml.read, """
-        abc:
-            |
-              def
-              : ghi"""
-        )
-        self.assertRaisesRegex(
-            jaml.JamlError,
-            "Line 5: value after block key must be aligned with key",
-            jaml.read, """
-        abc:
-            |
-                def
-             : ghi
-              """
-        )
-        self.assertRaisesRegex(
-            jaml.JamlError,
-            "Line 5: value after block key must be aligned with key",
-            jaml.read, """
-        abc:
-            |
-                def
-          : ghi
-              """
         )
 
     @patch("trubar.jaml.read")
@@ -457,70 +330,27 @@ class `A`: false
                     MsgNode(
                        value={ "def `f`": MsgNode({
                            "a\nb\nc": MsgNode("abc"),
-                           "abc": MsgNode("a\n" + "b" * 100),
+                           "abc": MsgNode("\n     a\n     \n   " + "b" * 100 + "\n"),
                            "foo": MsgNode(False),
                            "def": MsgNode("a\n" + "b" * 100),
                        })}),
                 "x/y.py": MsgNode(None)
                 }
-        self.assertEqual(jaml.dump(tree), """
-a/b.py:
+        self.assertEqual(jaml.dump(tree), '''a/b.py:
     def `f`:
-        |
-            a
-            b
-            c
-        : abc
-        abc: |
-            a
-            bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+        'a
+b
+c': abc
+        abc: '
+     a
+''' + " " * 5 + '''
+   bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+'
         foo: false
-        def: |
-            a
-            bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+        def: 'a
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 x/y.py: null
-"""[1:])
-
-
-class LineGeneratorTest(unittest.TestCase):
-    def test_generator(self):
-        gen = LineGenerator("""
-abc
-    def
-  ghi
-"""[1:].splitlines())
-        s, i = next(gen)
-        self.assertEqual(s, "abc")
-        self.assertEqual(i, 0)
-        self.assertEqual(gen.line_no, 1)
-
-        s, i = next(gen)
-        self.assertEqual(s, "    def")
-        self.assertEqual(i, 4)
-        self.assertEqual(gen.line_no, 2)
-        gen.put_back()
-        self.assertEqual(gen.line_no, 2)
-        s, i = next(gen)
-        self.assertEqual(s, "    def")
-        self.assertEqual(i, 4)
-        self.assertEqual(gen.line_no, 2)
-        gen.put_back()
-        s, i = next(gen)
-        self.assertEqual(s, "    def")
-        self.assertEqual(i, 4)
-        self.assertEqual(gen.line_no, 2)
-        gen.put_back()
-        gen.put_back()
-        self.assertEqual(gen.line_no, 2)
-        s, i = next(gen)
-        self.assertEqual(s, "    def")
-        self.assertEqual(i, 4)
-        self.assertEqual(gen.line_no, 2)
-
-        s, i = next(gen)
-        self.assertEqual(s, "  ghi")
-        self.assertEqual(i, 2)
-        self.assertEqual(gen.line_no, 3)
+''')
 
 
 if __name__ == "__main__":
