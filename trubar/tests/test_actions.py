@@ -1,7 +1,10 @@
+from pathlib import PureWindowsPath
+
 import re
 import io
 import os
 import unittest
+from unittest.mock import patch
 from contextlib import redirect_stdout
 
 import libcst as cst
@@ -306,6 +309,29 @@ class UtilsTest(unittest.TestCase):
             )
         finally:
             config.set_exclude_pattern(old_pattern)
+
+    @patch("os.walk",
+           return_value=[(r"c:\foo\bar\ann\bert",
+                          None,
+                          ["cecil.py", "dan.txt", "emily.py"])]
+           )
+    @patch("os.path.join", new=lambda *c: "\\".join(c))
+    @patch("trubar.actions.PurePath", new=PureWindowsPath)
+    def test_walk_backslashes_on_windows(self, _):
+        self.assertEqual(
+            list(walk_files(r"c:\foo\bar", select=False)),
+            [("ann/bert/cecil.py", r"c:\foo\bar\ann\bert\cecil.py"),
+             ("ann/bert/dan.txt", r"c:\foo\bar\ann\bert\dan.txt"),
+             ("ann/bert/emily.py", r"c:\foo\bar\ann\bert\emily.py")]
+        )
+        self.assertEqual(
+            list(walk_files(r"c:\foo\bar", "l", select=False)),
+            [("ann/bert/cecil.py", r"c:\foo\bar\ann\bert\cecil.py"),
+             ("ann/bert/emily.py", r"c:\foo\bar\ann\bert\emily.py")])
+        # Don't match pattern in path
+        self.assertEqual(
+            list(walk_files(r"c:\foo\bar", "o", select=False)),
+            [])
 
 
 class ActionsTest(unittest.TestCase):

@@ -2,6 +2,7 @@ import dataclasses
 import os
 import re
 import shutil
+from pathlib import PurePath
 from typing import Union, Iterator, Tuple, List, Optional, NamedTuple
 
 import libcst as cst
@@ -221,8 +222,8 @@ def walk_files(path: str, pattern: str = "", *, select: bool
             if select and not name.endswith(".py"):
                 continue
             name = os.path.join(dirpath, name)
-            keyname = name[len(path) + 1:]
-            if pattern in name and \
+            keyname = PurePath(name[len(path) + 1:]).as_posix()
+            if pattern in keyname and \
                     not (select and config.exclude_re
                          and config.exclude_re.search(keyname)):
                 yield keyname, name
