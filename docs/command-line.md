@@ -25,9 +25,8 @@ Action must be one of the following:
 ### Collect
 
 ```
-trubar collect [-h] [-p pattern] [-s source-dir]
-               [-r removed-translations] [-q] [-n]
-               messages
+trubar collect [-h] [-p pattern] [-r removed-translations] [-q] [-n]
+               -s source-dir messages
 ```
 
 Collects strings from the specified source tree, skipping files that don't end with `.py` or whose path includes `tests/test_`. (The latter can be changed in [configuration file](../configuration).) Strings with no effect are ignored; this is aimed at docstrings, but will also skip any other unused strings.
@@ -39,7 +38,7 @@ If the output file already exists, it is updated: new messages are merged into i
 messages are removed.
 
 `-s <path>`, `--source <path>`
-: Defines the root directory of the source tree. Default is the current directory.
+: Defines the root directory of the source tree.
 
 `-p <pattern>`, `--pattern <pattern>`
 : Gives a pattern that the file path must include to be considered. The pattern is checked against the entire path; e.g. `-p rm/pi` would match the path `farm/pigs.py:`.
@@ -56,10 +55,9 @@ messages are removed.
 ### Translate
 
 ```
-trubar translate [-h] [-s source-dir] [-d destination-dir]
-                 [-p pattern] [--static static-files-dir]
+trubar translate [-h] [-p pattern] [--static static-files-dir]
                  [-q] [-v {0,1,2,3}] [-n]
-                 messages
+                 -s source-dir -d destination-dir messages
 ```
 
 Translates files with extension .py and writes them to destination directories, and copies all other files. Untranslated strings (marked `null`, `false` or `true`) are kept as they are. The action overwrites any existing files.
@@ -68,7 +66,7 @@ Translates files with extension .py and writes them to destination directories, 
 : the name of the file with translated messages.
 
 `-s <source-dir>`, `--source <source-dir>`
-: Root directory of the source tree. Default is the current directory.
+: Root directory of the source tree.
 
 `-d <dest-path>`, `--dest <dest-path>` (required)
 : Destination directory.
