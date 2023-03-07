@@ -7,6 +7,7 @@ from trubar.actions import \
     ReportCritical
 from trubar.messages import load, dump
 from trubar.config import config
+from trubar.utils import check_any_files
 
 
 def check_dir_exists(path):
@@ -34,7 +35,8 @@ def main() -> None:
 
     parser = add_parser("collect", "Collect message strings in source files")
     parser.add_argument(
-        "-s", "--source", metavar="source-dir", default=".", help="source path")
+        "-s", "--source", metavar="source-dir",
+        required=True, help="source path")
     parser.add_argument(
         "messages", metavar="messages",
         help="existing or new file with messages")
@@ -54,9 +56,11 @@ def main() -> None:
         "messages", metavar="messages",
         help="file with translated messages")
     parser.add_argument(
-        "-d", "--dest", metavar="destination-dir", help="destination path")
+        "-d", "--dest", metavar="destination-dir",
+        required=True, help="destination path")
     parser.add_argument(
-        "-s", "--source", metavar="source-dir", help="source path")
+        "-s", "--source", metavar="source-dir",
+        required=True, help="source path")
     parser.add_argument(
         "--static", metavar="static-files-dir",
         help="directory with static files to copy")
@@ -127,9 +131,13 @@ def main() -> None:
 
     if args.action == "collect":
         check_dir_exists(args.source)
-        messages = collect(args.source, pattern, quiet=args.quiet)
         if os.path.exists(args.messages):
             existing = load(args.messages)
+            check_any_files(existing, args.source)
+        else:
+            existing = None
+        messages = collect(args.source, pattern, quiet=args.quiet)
+        if existing is not None:
             removed = merge(existing, messages, pattern,
                             print_unused=not args.removed)
             if args.removed and removed:
@@ -139,14 +147,13 @@ def main() -> None:
 
     elif args.action == "translate":
         check_dir_exists(args.source)
-        if not (args.source or args.dest) and not args.dry_run:
-            argparser.error("at least one of --source and --dest required")
         if args.source == args.dest:
             argparser.error("source and destination must not be the same")
         if args.static:
             config.set_static_files(args.static)
         verbosity = ReportCritical if args.quiet else args.verbosity
         messages = load(args.messages)
+        check_any_files(messages, args.source)
         translate(messages, args.source, args.dest, pattern,
                   verbosity=verbosity, dry_run=args.dry_run)
 
