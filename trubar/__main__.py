@@ -161,7 +161,7 @@ def main() -> None:
         additional = load(args.translations)
         existing = load(args.messages)
         unused = merge(additional, existing, pattern,
-                       print_unused=bool(args.unused))
+                       print_unused=not args.unused)
         if not args.dry_run:
             dump(existing, args.output or args.messages)
         if args.unused and unused:
