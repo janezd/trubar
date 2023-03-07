@@ -135,13 +135,11 @@ def main() -> None:
             existing = load(args.messages)
             check_any_files(existing, args.source)
         else:
-            existing = None
-        messages = collect(args.source, pattern, quiet=args.quiet)
-        if existing is not None:
-            removed = merge(existing, messages, pattern,
-                            print_unused=not args.removed)
-            if args.removed and removed:
-                dump(removed, args.removed)
+            existing = {}
+        messages, removed = collect(args.source, existing, pattern,
+                                    quiet=args.quiet, print_unused=not args.removed)
+        if args.removed and removed:
+            dump(removed, args.removed)
         if not args.dry_run:
             dump(messages, args.messages)
 

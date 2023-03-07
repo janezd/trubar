@@ -1,7 +1,9 @@
 import re
 import io
 import os
+from copy import deepcopy
 import unittest
+from unittest.mock import Mock, patch
 from contextlib import redirect_stdout
 
 import libcst as cst
@@ -11,7 +13,7 @@ from trubar.actions import \
     collect, missing, merge, template, TranslationError
 
 import trubar.tests.test_module
-from trubar.messages import dict_from_msg_nodes, dict_to_msg_nodes
+from trubar.messages import dict_from_msg_nodes, dict_to_msg_nodes, MsgNode
 from trubar.tests import yamlized
 
 test_module_path = os.path.split(trubar.tests.test_module.__file__)[0]
@@ -22,7 +24,6 @@ class StringCollectorTest(unittest.TestCase):
     def collect(s):
         collector = StringCollector()
         tree = cst.metadata.MetadataWrapper(cst.parse_module(s))
-        collector.open_module("foo_module")
         tree.visit(collector)
         return dict_from_msg_nodes(collector.contexts[0])
 
@@ -34,14 +35,14 @@ def f(x):
     c = \"\"\"and yet another\"\"\"
     d = '''and there's more'''
 """)
-        expected = {'foo_module': {'def `f`': {'a string': None,
-                                               'another string': None,
-                                               'and yet another': None,
-                                               "and there's more": None}}}
+        expected = {'def `f`': {'a string': None,
+                                'another string': None,
+                                'and yet another': None,
+                                "and there's more": None}}
         self.assertEqual(msgs, expected)
         # order should match, too
-        self.assertEqual(list(msgs["foo_module"]["def `f`"]),
-                         list(expected["foo_module"]["def `f`"]))
+        self.assertEqual(list(msgs["def `f`"]),
+                         list(expected["def `f`"]))
 
     def test_formatted_string(self):
         msgs = self.collect("""
@@ -52,16 +53,16 @@ def f(x):
     c = f\"\"\"and yet another {3 + 3}\"\"\"
     d = f'''and there's more'''
 """)
-        expected = {'foo_module': {'def `f`': {
+        expected = {'def `f`': {
             'a string {x}': None,
             'another string {2 + 2}': None,
             'and yet another {3 + 3}': None,
-            "and there's more": None}}}
+            "and there's more": None}}
 
         self.assertEqual(msgs, expected)
         # order should match, too
-        self.assertEqual(list(msgs["foo_module"]["def `f`"]),
-                         list(expected["foo_module"]["def `f`"]))
+        self.assertEqual(list(msgs["def `f`"]),
+                         list(expected["def `f`"]))
 
     def test_class_func(self):
         msgs = self.collect("""
@@ -82,13 +83,13 @@ class C:
         # check structure and order, thus `repr`
         self.assertEqual(
             repr(msgs),
-            "{'foo_module': {'class `A`': {'def `b`': {'def `c`': {'foo': None, 'bar': None}, "
-            "'baz': None, 'class `B`': {'baz': None}}}, 'class `C`': {'crux': None}}}")
+            "{'class `A`': {'def `b`': {'def `c`': {'foo': None, 'bar': None}, "
+            "'baz': None, 'class `B`': {'baz': None}}}, 'class `C`': {'crux': None}}")
 
     def test_module_and_walk_and_collect(self):
-        msgs = yamlized(collect)(test_module_path, "", quiet=True)
+        msgs, _ = collect(test_module_path, {}, "", quiet=True)
         self.assertEqual(
-            msgs,
+             dict_from_msg_nodes(msgs),
             {
              'bar_module/foo_module/__init__.py': {
                  "I've seen things you people wouldn't believe...": None},
@@ -116,14 +117,12 @@ def g(x):
     "useless string"''')
         self.assertEqual(
             msgs,
-            {'foo_module': {'def `f`': {'not a docstring': None},
-                            'def `g`': {'bar': None}}})
+            {'def `f`': {'not a docstring': None},
+                  'def `g`': {'bar': None}})
 
     def test_no_strings_within_interpolation(self):
         msgs = self.collect("""a = f'x = {len("foo")} {"bar"}'""")
-        self.assertEqual(
-            msgs,
-            {'foo_module': {'x = {len("foo")} {"bar"}': None}})
+        self.assertEqual(msgs, {'x = {len("foo")} {"bar"}': None})
 
 
 class StringTranslatorTest(unittest.TestCase):
@@ -227,7 +226,97 @@ print("samo {oklepaji}!")
 
 
 class ActionsTest(unittest.TestCase):
-    # collect is already tested above
+    @patch("builtins.print")
+    def test_collect(self, print_):
+        def parse_file(fn):
+            c = fn[-4]
+            return MsgNode(dict_to_msg_nodes(
+                {f"def `{c}`": {f"{c}{c}": None,
+                                f"{c}{c}{c}": None},
+                 f"{c}": None}))
+        file_list = [("a.py", "x/a.py"),
+                     ("b/c.py", "x/b/c.py"),
+                     ("b/d.py", "x/b/d.py")]
+        with patch("trubar.actions.StringCollector.parse_file", parse_file), \
+            patch("trubar.actions.walk_files", Mock(return_value=file_list)):
+            mess, remo = collect("", {}, "", quiet=True)
+            self.assertEqual(
+                mess,
+                dict_to_msg_nodes({
+                    "a.py": {"def `a`": {"aa": None, "aaa": None}, "a": None},
+                    "b/c.py": {"def `c`": {"cc": None, "ccc": None}, "c": None},
+                    "b/d.py": {"def `d`": {"dd": None, "ddd": None}, "d": None},
+                })
+            )
+            self.assertEqual(remo, {})
+            print_.assert_not_called()
+
+            collect("", {}, "", quiet=False)
+            print_.assert_called()
+            print_.reset_mock()
+
+            existing = dict_to_msg_nodes({
+                "b/d.py": {"def `d`": {"dd": "dtrans", "ddd": None},
+                           "foo": None, "bar": "baz"},
+                "b/e.py": {"qux": None},
+                "b/f.py": {"qui": "quo"}})
+            mess, remo = collect("", deepcopy(existing), "",
+                                 quiet=True, print_unused=False)
+            self.assertEqual(
+                mess,
+                dict_to_msg_nodes({
+                    "a.py": {"def `a`": {"aa": None, "aaa": None}, "a": None},
+                    "b/c.py": {"def `c`": {"cc": None, "ccc": None}, "c": None},
+                    "b/d.py": {"def `d`": {"dd": "dtrans", "ddd": None}, "d": None},
+                })
+            )
+            self.assertEqual(
+                remo,
+                dict_to_msg_nodes({
+                    "b/d.py": {"bar": "baz"},
+                    "b/f.py": {"qui": "quo"}
+                })
+            )
+            print_.assert_not_called()
+
+            collect("", deepcopy(existing), "", quiet=True)
+            print_.assert_called()
+            print_.reset_mock()
+
+            existing = dict_to_msg_nodes({
+                "b/d.py": {"def `d`": {"dd": "dtrans", "ddd": None},
+                           "foo": None, "bar": "baz"},
+                "b/e.py": {"qux": None},
+                "b/f.py": {"qui": "quo"},
+                "b/g.py": {"qux": None},
+                "b/h.py": {"qui": "quo"},
+            })
+            file_list += [("b/e.py", "x/b/e.py"),
+                          ("b/f.py", "x/b/f.py")]
+            mess, remo = collect("", deepcopy(existing), "d",
+                                 quiet=True, print_unused=False)
+            self.assertEqual(
+                mess,
+                dict_to_msg_nodes({
+                    "b/d.py": {"def `d`": {"dd": "dtrans", "ddd": None}, "d": None},
+                    "b/e.py": {"qux": None},
+                    "b/f.py": {"qui": "quo"}
+                })
+            )
+            self.assertEqual(
+                remo,
+                dict_to_msg_nodes({
+                    "b/d.py": {"bar": "baz"},
+                    "b/h.py": {"qui": "quo"}
+                })
+            )
+            print_.assert_not_called()
+
+            collect("", deepcopy(existing), "d", quiet=True)
+            print_.assert_called()
+            print_.reset_mock()
+
+
     # translate: we test walk and StringTranslator; let us assume we call them
     # correctly
 
