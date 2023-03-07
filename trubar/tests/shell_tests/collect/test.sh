@@ -58,3 +58,22 @@ then
     echo "Non-zero exit code expected"
     exit 1
 fi
+set -e
+
+set +e
+echo "... invalid source dir correction"
+cp some_messages.yaml tmp/some_messages.yaml
+print_run 'trubar collect -s .. tmp/some_messages.yaml' tmp/output.txt
+if [ $? -eq 0 ]
+then
+    echo "Non-zero exit code expected"
+    exit 1
+fi
+grep -q "instead" tmp/output.txt
+if [ $? -ne 0 ]
+then
+    echo "No error message"
+    exit 1
+fi
+set -e
+rm tmp/some_messages.yaml tmp/output.txt

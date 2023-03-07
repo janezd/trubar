@@ -2,12 +2,12 @@ import dataclasses
 import os
 import re
 import shutil
-from pathlib import PurePath
-from typing import Union, Iterator, Tuple, List, Optional, NamedTuple
+from typing import Union, List, Optional, NamedTuple
 
 import libcst as cst
 from libcst.metadata import ParentNodeProvider
 
+from trubar.utils import walk_files
 from trubar.messages import MsgNode, MsgDict
 from trubar.config import config
 
@@ -214,21 +214,6 @@ class StringTranslator(cst.CSTTransformer):
         return self.__translate(original_node, updated_node)
 
 
-def walk_files(path: str, pattern: str = "", *, select: bool
-               ) -> Iterator[Tuple[str, str]]:
-    path = os.path.normpath(path)
-    for dirpath, _, files in sorted(os.walk(path)):
-        for name in sorted(files):
-            if select and not name.endswith(".py"):
-                continue
-            name = os.path.join(dirpath, name)
-            keyname = PurePath(name[len(path) + 1:]).as_posix()
-            if pattern in keyname and \
-                    not (select and config.exclude_re
-                         and config.exclude_re.search(keyname)):
-                yield keyname, name
-
-
 def collect(source: str, pattern: str, *, quiet=False) -> MsgDict:
     collector = StringCollector()
     for name, fullname in walk_files(source, pattern, select=True):
@@ -245,9 +230,7 @@ ReportCritical, ReportUpdates, ReportTranslations, ReportAll = range(4)
 
 
 def translate(translations: MsgDict,
-              source: Optional[str],
-              destination: Optional[str],
-              pattern: str,
+              source: str, destination: str, pattern: str,
               *, verbosity=ReportUpdates, dry_run=False) -> None:
     def write_if_different(data, dest):
         try:
@@ -282,8 +265,6 @@ def translate(translations: MsgDict,
             any_reports = True
             print(s)
 
-    source = source or "."
-    destination = destination or "."
     for name, fullname in walk_files(source, pattern, select=False):
         transname = os.path.join(destination, name)
         path, _ = os.path.split(transname)

@@ -1,20 +1,16 @@
-from pathlib import PureWindowsPath
-
 import re
 import io
 import os
 import unittest
-from unittest.mock import patch
 from contextlib import redirect_stdout
 
 import libcst as cst
 
 from trubar.actions import \
-    StringCollector, StringTranslator, Stat, walk_files, \
+    StringCollector, StringTranslator, Stat, \
     collect, missing, merge, template, TranslationError
 
 import trubar.tests.test_module
-from trubar.config import config
 from trubar.messages import dict_from_msg_nodes, dict_to_msg_nodes
 from trubar.tests import yamlized
 
@@ -228,110 +224,6 @@ print("samo {oklepaji}!")
         self.assertRaisesRegex(
             TranslationError,
             re.compile(".*foo.*bar.*", re.DOTALL), tree.visit, translator)
-
-
-class UtilsTest(unittest.TestCase):
-    def test_walk_files(self):
-        tmp = test_module_path
-        old_pattern = config.exclude_pattern
-        try:
-            config.set_exclude_pattern("")
-            self.assertEqual(
-                set(walk_files(tmp, select=True)),
-                {('bar_module/__init__.py',
-                  f'{tmp}/bar_module/__init__.py'),
-                 ('bar_module/foo_module/__init__.py',
-                  f'{tmp}/bar_module/foo_module/__init__.py'),
-                 ('baz_module/__init__.py',
-                  f'{tmp}/baz_module/__init__.py'),
-                 ('__init__.py',
-                  f'{tmp}/__init__.py')}
-            )
-
-            old_path = os.getcwd()
-            try:
-                os.chdir(tmp)
-                self.assertEqual(
-                    set(walk_files(".", select=True)),
-                    {('bar_module/__init__.py',
-                      './bar_module/__init__.py'),
-                     ('bar_module/foo_module/__init__.py',
-                      './bar_module/foo_module/__init__.py'),
-                     ('baz_module/__init__.py',
-                      './baz_module/__init__.py'),
-                     ('__init__.py',
-                      './__init__.py')}
-                )
-                self.assertEqual(
-                    set(walk_files(".", "bar", select=True)),
-                    {('bar_module/__init__.py',
-                      './bar_module/__init__.py'),
-                     ('bar_module/foo_module/__init__.py',
-                      './bar_module/foo_module/__init__.py')}
-                )
-            finally:
-                os.chdir(old_path)
-
-            self.assertEqual(
-                set(walk_files(tmp, select=False)),
-                {('bar_module/__init__.py',
-                  f'{tmp}/bar_module/__init__.py'),
-                 ('bar_module/foo_module/__init__.py',
-                  f'{tmp}/bar_module/foo_module/__init__.py'),
-                 ('baz_module/__init__.py',
-                  f'{tmp}/baz_module/__init__.py'),
-                 ('__init__.py',
-                  f'{tmp}/__init__.py'),
-                 ('baz_module/not-python.js',
-                  f'{tmp}/baz_module/not-python.js')}
-            )
-
-            config.set_exclude_pattern("b?r_")
-            self.assertEqual(
-                set(walk_files(tmp, select=False)),
-                {('bar_module/__init__.py',
-                  f'{tmp}/bar_module/__init__.py'),
-                 ('bar_module/foo_module/__init__.py',
-                  f'{tmp}/bar_module/foo_module/__init__.py'),
-                 ('baz_module/__init__.py',
-                  f'{tmp}/baz_module/__init__.py'),
-                 ('__init__.py',
-                  f'{tmp}/__init__.py'),
-                 ('baz_module/not-python.js',
-                  f'{tmp}/baz_module/not-python.js')}
-            )
-            self.assertEqual(
-                set(walk_files(tmp, select=True)),
-                {('baz_module/__init__.py',
-                  f'{tmp}/baz_module/__init__.py'),
-                 ('__init__.py',
-                  f'{tmp}/__init__.py')}
-            )
-        finally:
-            config.set_exclude_pattern(old_pattern)
-
-    @patch("os.walk",
-           return_value=[(r"c:\foo\bar\ann\bert",
-                          None,
-                          ["cecil.py", "dan.txt", "emily.py"])]
-           )
-    @patch("os.path.join", new=lambda *c: "\\".join(c))
-    @patch("trubar.actions.PurePath", new=PureWindowsPath)
-    def test_walk_backslashes_on_windows(self, _):
-        self.assertEqual(
-            list(walk_files(r"c:\foo\bar", select=False)),
-            [("ann/bert/cecil.py", r"c:\foo\bar\ann\bert\cecil.py"),
-             ("ann/bert/dan.txt", r"c:\foo\bar\ann\bert\dan.txt"),
-             ("ann/bert/emily.py", r"c:\foo\bar\ann\bert\emily.py")]
-        )
-        self.assertEqual(
-            list(walk_files(r"c:\foo\bar", "l", select=False)),
-            [("ann/bert/cecil.py", r"c:\foo\bar\ann\bert\cecil.py"),
-             ("ann/bert/emily.py", r"c:\foo\bar\ann\bert\emily.py")])
-        # Don't match pattern in path
-        self.assertEqual(
-            list(walk_files(r"c:\foo\bar", "o", select=False)),
-            [])
 
 
 class ActionsTest(unittest.TestCase):

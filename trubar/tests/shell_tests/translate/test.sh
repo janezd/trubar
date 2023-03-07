@@ -56,3 +56,20 @@ if [[ ! -z $(cat tmp/verb_output) ]] ; then
     exit 1
 fi
 rm tmp/verb_output
+
+echo "... invalid source dir correction"
+set +e
+print_run 'trubar translate -s .. -d tmp/si_foo translations.yaml' tmp/output.txt
+if [ $? -eq 0 ]
+then
+    echo "Non-zero exit code expected"
+    exit 1
+fi
+grep -q "instead" tmp/output.txt
+if [ $? -ne 0 ]
+then
+    echo "No recommendation is given"
+    exit 1
+fi
+set -e
+rm tmp/output.txt
