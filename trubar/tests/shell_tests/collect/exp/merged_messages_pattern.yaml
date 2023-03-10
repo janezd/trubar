@@ -13,7 +13,6 @@ __init__.py:
     Import it, if you must.: null
 submodule/apples.py:
     Oranges: Pomaranče
-    Lemons: Limone
 trash/nothing.py:
     def `f`:
         To see here: Videti tukaj?

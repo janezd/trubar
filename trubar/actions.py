@@ -2,7 +2,7 @@ import dataclasses
 import os
 import re
 import shutil
-from typing import Union, List, Optional, NamedTuple
+from typing import Union, List, Optional, NamedTuple, Tuple
 
 import libcst as cst
 from libcst.metadata import ParentNodeProvider
@@ -42,6 +42,14 @@ def prefix_for_node(node: NamespaceNode):
 class StringCollector(cst.CSTVisitor):
     METADATA_DEPENDENCIES = (ParentNodeProvider, )
 
+    @classmethod
+    def parse_file(cls, fullname):
+        collector = cls()
+        with open(fullname, encoding=config.encoding) as f:
+            tree = cst.metadata.MetadataWrapper(cst.parse_module(f.read()))
+            tree.visit(collector)
+        return MsgNode(collector.contexts[0])
+
     def __init__(self):
         super().__init__()
         self.module: Optional[cst.Module] = None
@@ -49,18 +57,12 @@ class StringCollector(cst.CSTVisitor):
         # The stack of nodes (module, class, function) corresponding to
         # the element of stack of contexts
         self.function_stack: List[State] = []
-        self.contexts: List[MsgDict] = [{}]
-
-    def open_module(self, name: str) -> None:
-        self.module_name = name
+        self.contexts: List[MsgDict] = []
 
     def visit_Module(self, node: cst.Module) -> bool:
         self.module = node
-        self.push_context(node, self.module_name)
+        self.push_context(node, "")
         return True
-
-    def leave_Module(self, _) -> None:
-        self.pop_context()
 
     def push_context(self, node: NamespaceNode, name=None) -> None:
         if name is None:
@@ -214,16 +216,34 @@ class StringTranslator(cst.CSTTransformer):
         return self.__translate(original_node, updated_node)
 
 
-def collect(source: str, pattern: str, *, quiet=False) -> MsgDict:
-    collector = StringCollector()
-    for name, fullname in walk_files(source, pattern, select=True):
-        if not quiet:
-            print(f"Parsing {name}")
-        with open(fullname, encoding=config.encoding) as f:
-            tree = cst.metadata.MetadataWrapper(cst.parse_module(f.read()))
-            collector.open_module(name)
-            tree.visit(collector)
-    return collector.contexts[0]
+def collect(source: str,
+            existing: Optional[MsgDict] = None,
+            pattern: str = "",
+            *, quiet=False, print_unused=True) -> Tuple[MsgDict, MsgDict]:
+    messages = {}
+    removed = {}
+    for name, fullname in walk_files(source, "", select=True):
+        if pattern in name:
+            if not quiet:
+                print(f"Parsing {name}")
+            messages[name] = StringCollector.parse_file(fullname)
+            if name in existing:
+                removals = MsgNode(merge(
+                    existing.pop(name).value, messages[name].value,
+                    "", name, print_unused))
+                if removals.value:
+                    removed[name] = removals
+        elif name in existing:
+            messages[name] = existing.pop(name)
+
+    existing = {name: trans for name, trans in existing.items()
+                if _any_translations(trans.value)}
+    removed.update(existing)
+    if print_unused and existing:
+        print("The following file(s) no longer exist:")
+        print("\n".join(f"- {name}" for name in existing))
+
+    return messages, removed
 
 
 ReportCritical, ReportUpdates, ReportTranslations, ReportAll = range(4)

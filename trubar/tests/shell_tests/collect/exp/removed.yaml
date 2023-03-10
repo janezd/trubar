@@ -2,3 +2,5 @@ __init__.py:
     class `A`:
         def `f`:
             Extra message: Posebno sporočilo
+submodule/apples.py:
+    Lemons: Limone
