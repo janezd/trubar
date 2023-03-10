@@ -19,6 +19,22 @@ def check_dir_exists(path):
         sys.exit(2)
 
 
+def load_config(args):
+    if args.conf:
+        config.update_from_file(args.conf)
+        return
+
+    paths = [""]
+    if hasattr(args, "source"):
+        paths.append(args.source)
+    for path in paths:
+        for name in (".trubarconfig.yaml", "trubar-config.yaml"):
+            fullname = os.path.join(path, name)
+            if os.path.exists(fullname):
+                config.update_from_file(fullname)
+                return
+
+
 def main() -> None:
     def add_parser(name, desc):
         subparser = subparsers.add_parser(name, help=desc, description=desc)
@@ -121,12 +137,7 @@ def main() -> None:
         help="file with messages")
 
     args = argparser.parse_args(sys.argv[1:])
-
-    if args.conf:
-        config.update_from_file(args.conf)
-    elif os.path.exists("trubar-config.yaml"):
-        config.update_from_file("trubar-config.yaml")
-
+    load_config(args)
     pattern = args.pattern
 
     if args.action == "collect":
