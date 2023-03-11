@@ -1,10 +1,10 @@
-## 0.2.2 - 2023-03-11
+## 0.2.2, 0.2.3 - 2023-03-11
 
 #### New and improved functionality
 
 - (Compatibility breking change) Remove support for yaml-style (`|`) blocks in jaml. Use multiline (single-)quoted strings instead.
 - Arguments `-s` and `-d` are now required; trubar no longer falls back to current directory
-- If default configuration file is not found in current directory, Trubar also searches the source directory. `.trubarconfig` is now a primary default name.
+- If default configuration file is not found in current directory, Trubar also searches the directory with messages and source directory. `.trubarconfig` is now a primary default name.
 
 #### Bug fixes
 
