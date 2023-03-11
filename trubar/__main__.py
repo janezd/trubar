@@ -25,7 +25,9 @@ def load_config(args):
         return
 
     paths = [""]
-    if hasattr(args, "source"):
+    if getattr(args, "messages", False):
+        paths.append(os.path.split(args.messages)[0])
+    if getattr(args, "source", False):
         paths.append(args.source)
     for path in paths:
         for name in (".trubarconfig.yaml", "trubar-config.yaml"):

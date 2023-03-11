@@ -25,45 +25,44 @@ fi
 set -e
 rm -r tmp/test_translated
 
-function report_error_apples() {
-    echo $1
-    echo ""
-    cat tmp/test_translated/submodule/apples.py
-    echo ""
-    exit 1
-
+function check_apples() {
+    if [[ $(head -1 tmp/test_translated/submodule/apples.py) != $1 ]]
+        then
+            echo "Config not imported"
+            echo ""
+            cat tmp/test_translated/submodule/apples.py
+            echo ""
+            exit 1
+        fi
 }
+
 echo "... test auto import"
 print_run 'trubar --conf config-auto-import.yaml translate -s ../test_project -d tmp/test_translated translations.yaml -q'
-if [[ $(cat tmp/test_translated/submodule/apples.py) != "from foo.bar.localization import plurals  # pylint: disable=wrong-import-order
-
-print(\"Pomaranče\")" ]]
-then
-  report_error_apples "Auto import is missing or wrong:"
-fi
+check_apples "from foo.bar.localization import plurals  # pylint: disable=wrong-import-order"
 rm -r tmp/test_translated
 
 echo "... default configuration in current directory"
 print_run 'trubar translate -s ../test_project -d tmp/test_translated translations.yaml -q'
-if [[ $(cat tmp/test_translated/submodule/apples.py) != "from foo import something_fancy
-
-print(\"Pomaranče\")" ]]
-then
-    report_error_apples ".trubarconfig.yaml in current directory is not read by default"
-fi
+check_apples "from foo import something_fancy"
 rm -r tmp/test_translated
 
-echo "... default configuration in source directory"
+# Copy project to another location so we can play with adding config file
 mkdir tmp/tmp2
 cp -R ../test_project tmp/tmp2/test_project
-cp config-auto-import.yaml tmp/tmp2/test_project/.trubarconfig.yaml
+
+echo "... default configuration in messages directory"
 cd tmp
 print_run 'trubar translate -s tmp2/test_project -d test_translated ../translations.yaml -q'
 cd ..
-if [[ $(cat tmp/test_translated/submodule/apples.py) != "from foo.bar.localization import plurals  # pylint: disable=wrong-import-order
+check_apples "from foo import something_fancy"
 
-print(\"Pomaranče\")" ]]
-then
-    report_error_apples ".trubarconfig.yaml in source directory is not read by default"
-fi
-rm -r tmp/test_translated
+echo "... default configuration in source directory"
+cp config-auto-import.yaml tmp/tmp2/test_project/.trubarconfig.yaml
+mv .trubarconfig.yaml .trubarconfig.bak
+cd tmp
+print_run 'trubar translate -s tmp2/test_project -d test_translated ../translations.yaml -q'
+cd ..
+mv .trubarconfig.bak .trubarconfig.yaml
+check_apples "from foo.bar.localization import plurals  # pylint: disable=wrong-import-order"
+rm -r tmp/test_translated tmp/tmp2
+
