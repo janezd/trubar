@@ -1,4 +1,27 @@
-## 0.2 - 2022-01-08
+## 0.2.2 - 2023-03-11
+
+#### New and improved functionality
+
+- (Compatibility breking change) Remove support for yaml-style (`|`) blocks in jaml. Use multiline (single-)quoted strings instead.
+- Arguments `-s` and `-d` are now required; trubar no longer falls back to current directory
+- If default configuration file is not found in current directory, Trubar also searches the source directory. `.trubarconfig` is now a primary default name.
+
+#### Bug fixes
+
+- `collect` with `--pattern` now keeps original messages from non-matching when updating an existing file
+- Replaces Windows-style backslashes with slashes in jaml keys
+
+#### Minor fixes
+
+- Fix message supression in `collect`
+
+
+## 0.2.1 - 2023-01-13
+
+- `collect` can now update existing files, reducing the need for `merge`
+- Minor reorganization of command line arguments
+
+## 0.2 - 2023-01-08
 
 #### New and improved functionality
 
