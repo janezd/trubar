@@ -1,12 +1,14 @@
 ## Configuration file
 
-Configuration file is a simple yaml file with options-value pairs, for instance
+Configuration file is a yaml file with options-value pairs, for instance
 
 ```
 smart-quotes: false
 auto-prefix: true
 auto-import: "from orangecanvas.utils.localization.si import plsi, plsi_sz"
 ```
+
+If configuration is not specified, Truber looks for `.trubarconfig.yaml` and `trubar-config.yaml`,respectively, first in the current working directory and then in source directory, as specified by `-s` argument (only for `collect` and `translate`).
 
 The available options are
 

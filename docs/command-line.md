@@ -10,7 +10,7 @@ Trubar is invoked by
 : Prints help and exits.
 
 `--conf <conf-file>`
-: Specifies the [configuration file](../configuration).
+: Specifies the [configuration file](../configuration). If not given, Trubar searches for `.trubarconfig.yaml` and `trubar-config.yaml` in current directory and in source directory (for `collect` and `translate`).
 
 Action must be one of the following:
 
