@@ -29,27 +29,40 @@ class TestUtils(unittest.TestCase):
         class Args:
             source = os.path.join("x", "y", "z")
             conf = ""
+            messages = ""
 
         args = Args()
 
+        # config is given explicitly
         args.conf = "foo.yaml"
         load_config(args)
         update.assert_called_with("foo.yaml")
         update.reset_mock()
         args.conf = ""
 
+        # .trubarconfig.yaml has precedence over trubar-config.yaml
         with patch("os.path.exists",
                    lambda x: os.path.split(x)[-1] in ("trubar-config.yaml",
                                                       ".trubarconfig.yaml")):
             load_config(args)
         update.assert_called_with(".trubarconfig.yaml")
 
+        # ... but trubar-config.yaml is loaded when there is no trubarconfig.yaml
         with patch("os.path.exists",
                    lambda x: os.path.split(x)[-1] == "trubar-config.yaml"):
             load_config(args)
         update.assert_called_with("trubar-config.yaml")
 
+        # Load from source directory
         confile = os.path.join(args.source, ".trubarconfig.yaml")
+        with patch("os.path.exists", lambda x: x == confile):
+            load_config(args)
+        update.assert_called_with(confile)
+
+        # Messages directory has precedence over source
+        mess_dir = os.path.join("t", "u", "v")
+        args.messages = os.path.join(mess_dir, "mess.yaml")
+        confile = os.path.join(mess_dir, ".trubarconfig.yaml")
         with patch("os.path.exists", lambda x: x == confile):
             load_config(args)
         update.assert_called_with(confile)

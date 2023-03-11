@@ -8,7 +8,7 @@ auto-prefix: true
 auto-import: "from orangecanvas.utils.localization.si import plsi, plsi_sz"
 ```
 
-If configuration is not specified, Truber looks for `.trubarconfig.yaml` and `trubar-config.yaml`,respectively, first in the current working directory and then in source directory, as specified by `-s` argument (only for `collect` and `translate`).
+If configuration is not specified, Truber looks for `.trubarconfig.yaml` and `trubar-config.yaml`,respectively, first in the current working directory and then in directory with message file, and then in source directory, as specified by `-s` argument (only for `collect` and `translate`).
 
 The available options are
 
