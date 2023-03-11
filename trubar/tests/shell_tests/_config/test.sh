@@ -25,16 +25,45 @@ fi
 set -e
 rm -r tmp/test_translated
 
+function report_error_apples() {
+    echo $1
+    echo ""
+    cat tmp/test_translated/submodule/apples.py
+    echo ""
+    exit 1
+
+}
 echo "... test auto import"
 print_run 'trubar --conf config-auto-import.yaml translate -s ../test_project -d tmp/test_translated translations.yaml -q'
 if [[ $(cat tmp/test_translated/submodule/apples.py) != "from foo.bar.localization import plurals  # pylint: disable=wrong-import-order
 
 print(\"Pomaranče\")" ]]
 then
-    echo "Auto import is missing or wrong:"
-    echo ""
-    cat tmp/test_translated/submodule/apples.py
-    echo ""
-    exit 1
+  report_error_apples "Auto import is missing or wrong:"
+fi
+rm -r tmp/test_translated
+
+echo "... default configuration in current directory"
+print_run 'trubar translate -s ../test_project -d tmp/test_translated translations.yaml -q'
+if [[ $(cat tmp/test_translated/submodule/apples.py) != "from foo import something_fancy
+
+print(\"Pomaranče\")" ]]
+then
+    report_error_apples ".trubarconfig.yaml in current directory is not read by default"
+fi
+rm -r tmp/test_translated
+
+echo "... default configuration in source directory"
+mkdir tmp/tmp2
+cp -R ../test_project tmp/tmp2/test_project
+cp config-auto-import.yaml tmp/tmp2/test_project/.trubarconfig.yaml
+cd tmp
+print_run 'trubar translate -s tmp2/test_project -d test_translated ../translations.yaml -q'
+cd ..
+if [[ $(cat tmp/test_translated/submodule/apples.py) != "from foo.bar.localization import plurals  # pylint: disable=wrong-import-order
+
+print(\"Pomaranče\")" ]]
+then
+    report_error_apples ".trubarconfig.yaml in source directory is not read by default"
 fi
 rm -r tmp/test_translated
