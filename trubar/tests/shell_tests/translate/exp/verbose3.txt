@@ -1,3 +1,4 @@
 Skipping __init__.py (unchanged)
 Updating translated submodule/apples.py
+Copying submodule/nomessages.py (no translations)
 Skipping trash/nothing.py (unchanged; no translations)

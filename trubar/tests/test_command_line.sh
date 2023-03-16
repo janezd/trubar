@@ -52,4 +52,6 @@ if [ ! -z "$FAILED" ]
 then
     echo "Failed tests: $FAILED"
     exit 1
+else
+    echo "Success."
 fi

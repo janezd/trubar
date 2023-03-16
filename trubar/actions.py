@@ -226,7 +226,9 @@ def collect(source: str,
         if pattern in name:
             if not quiet:
                 print(f"Parsing {name}")
-            messages[name] = StringCollector.parse_file(fullname)
+            collected = StringCollector.parse_file(fullname)
+            if collected.value:
+                messages[name] = collected
             if name in existing:
                 removals = MsgNode(merge(
                     existing.pop(name).value, messages[name].value,
