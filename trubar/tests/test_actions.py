@@ -238,7 +238,7 @@ class ActionsTest(unittest.TestCase):
                      ("b/c.py", "x/b/c.py"),
                      ("b/d.py", "x/b/d.py")]
         with patch("trubar.actions.StringCollector.parse_file", parse_file), \
-            patch("trubar.actions.walk_files", Mock(return_value=file_list)):
+                patch("trubar.actions.walk_files", Mock(return_value=file_list)):
             mess, remo = collect("", {}, "", quiet=True)
             self.assertEqual(
                 mess,
@@ -315,6 +315,20 @@ class ActionsTest(unittest.TestCase):
             collect("", deepcopy(existing), "d", quiet=True)
             print_.assert_called()
             print_.reset_mock()
+
+    @patch("builtins.print")
+    def test_collect_empty_file(self, _):
+        def parse_file(fn):
+            if fn == "a.py":
+                return MsgNode({"x": MsgNode(None)})
+            else:
+                return MsgNode({})
+        file_list = [("a.py", "a.py"),
+                     ("b.py", "b.py")]
+        with patch("trubar.actions.StringCollector.parse_file", parse_file), \
+                patch("trubar.actions.walk_files", Mock(return_value=file_list)):
+            mess, _ = collect("", {}, "", quiet=True)
+            self.assertEqual(mess, dict_to_msg_nodes({"a.py": {"x": None}}))
 
 
     # translate: we test walk and StringTranslator; let us assume we call them
