@@ -231,7 +231,7 @@ def collect(source: str,
                 messages[name] = collected
             if name in existing:
                 removals = MsgNode(merge(
-                    existing.pop(name).value, messages[name].value,
+                    existing.pop(name).value, collected.value,
                     "", name, print_unused))
                 if removals.value:
                     removed[name] = removals
