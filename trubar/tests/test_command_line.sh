@@ -4,7 +4,7 @@ function print_run() {
     then
         ${1}
     else
-        ${1} > $2
+        ${1} > $2 2>&1
     fi
 }
 

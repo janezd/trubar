@@ -75,7 +75,10 @@ def main() -> None:
         help="file with translated messages")
     parser.add_argument(
         "-d", "--dest", metavar="destination-dir",
-        required=True, help="destination path")
+        help="destination path")
+    parser.add_argument(
+        "-i", "--inplace", action="store_true",
+        help="translate files in-place")
     parser.add_argument(
         "-s", "--source", metavar="source-dir",
         required=True, help="source path")
@@ -158,8 +161,13 @@ def main() -> None:
 
     elif args.action == "translate":
         check_dir_exists(args.source)
-        if args.source == args.dest:
-            argparser.error("source and destination must not be the same")
+        if args.inplace:
+            if args.dest:
+                argparser.error("options -d and -i are incompatible")
+            else:
+                args.dest = args.source
+        elif not args.dest:
+            argparser.error("specify destination (-d) or translate in place (-i)")
         if args.static:
             config.set_static_files(args.static)
         verbosity = ReportCritical if args.quiet else args.verbosity

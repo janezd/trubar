@@ -60,7 +60,7 @@ trubar translate [-h] [-p pattern] [--static static-files-dir]
                  -s source-dir -d destination-dir messages
 ```
 
-Translates files with extension .py and writes them to destination directories, and copies all other files. Untranslated strings (marked `null`, `false` or `true`) are kept as they are. The action overwrites any existing files.
+Translates files with extension .py and writes them to destination directories, and copies all other files. Alternatively, `-i` can be given for translation in-place. Untranslated strings (marked `null`, `false` or `true`) are kept as they are. The action overwrites any existing files.
 
 `messages`
 : the name of the file with translated messages.
@@ -68,8 +68,11 @@ Translates files with extension .py and writes them to destination directories, 
 `-s <source-dir>`, `--source <source-dir>`
 : Root directory of the source tree.
 
-`-d <dest-path>`, `--dest <dest-path>` (required)
-: Destination directory.
+`-d <dest-path>`, `--dest <dest-path>`
+: Destination directory. Either this option or `-i` is required.
+
+`-i`, `--inplace`
+: In-place translation. Either this or `-d` is required.
 
 `-p <pattern>`, `--pattern <pattern>`
 : A pattern that the file path must include to be considered.
