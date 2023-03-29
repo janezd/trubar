@@ -6,6 +6,12 @@ diff -r tmp/si_translated exp/si_translated
 diff -r exp/si_translated tmp/si_translated_copy
 rm -r tmp/si_translated
 
+echo "... in place"
+cp -r ../test_project tmp/
+print_run 'trubar translate -s tmp/test_project -i translations.yaml -q'
+diff -r tmp/test_project exp/si_translated
+rm -r tmp/test_project
+
 echo "... with pattern"
 mkdir tmp/si_translated
 cp ../test_project/__init__.py tmp/si_translated/__init__.py
@@ -57,7 +63,34 @@ if [[ ! -z $(cat tmp/verb_output) ]] ; then
 fi
 rm tmp/verb_output
 
-echo "... invalid source dir correction"
+echo "... error: no -d or -i"
+set +e
+print_run 'trubar translate -s .. translations.yaml' tmp/output.txt
+if [ $? -eq 0 ]
+then
+    echo "Non-zero exit code expected"
+    exit 1
+fi
+
+
+echo "... error: both -i and -d are given"
+set +e
+print_run 'trubar translate -s .. -d tmp/si_foo -i translations.yaml' tmp/output.txt
+if [ $? -eq 0 ]
+then
+    echo "Non-zero exit code expected"
+    exit 1
+fi
+grep -q "incompatible" tmp/output.txt
+if [ $? -ne 0 ]
+then
+    echo "No recommendation is given"
+    exit 1
+fi
+set -e
+rm tmp/output.txt
+
+echo "... error: invalid source dir + correction"
 set +e
 print_run 'trubar translate -s .. -d tmp/si_foo translations.yaml' tmp/output.txt
 if [ $? -eq 0 ]

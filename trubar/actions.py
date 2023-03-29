@@ -269,7 +269,8 @@ def translate(translations: MsgDict,
         with open(src, encoding=config.encoding) as f:
             return write_if_different(f.read(), dest)
 
-    if dry_run:
+    inplace = source == destination
+    if dry_run or inplace:
         def noop(*_, **_1):
             pass
 
@@ -301,6 +302,8 @@ def translate(translations: MsgDict,
         # Copy files without translations
         if name not in translations or \
                 not _any_translations(translations[name].value):
+            if inplace:
+                continue
             diff = copy_if_different(fullname, transname)
             if diff:
                 report(f"Copying {name} (no translations)", ReportAll)
