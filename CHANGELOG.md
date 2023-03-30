@@ -1,3 +1,13 @@
+## 0.2.4 - 2023-03-30
+
+#### New and improved functionality
+
+- Add option for in-place translation
+
+#### Bug fixes
+
+- After changed in 0.2.3, files without messages were inadvertently included in message files. This resulted in broken .jaml files.
+
 ## 0.2.2, 0.2.3 - 2023-03-11
 
 #### New and improved functionality
