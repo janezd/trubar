@@ -14,7 +14,7 @@ class Configuration:
 
     auto_import: str = ""
 
-    static_files: str = ""
+    static_files: tuple = ()
 
     exclude_pattern: str = "tests/test_"
 
@@ -50,6 +50,8 @@ class Configuration:
                 try:
                     if value is None:
                         value = field.type()
+                    elif field.type is tuple and isinstance(value, str):
+                        value = (value, )
                     else:
                         value = field.type(value)
                 except ValueError:
@@ -58,6 +60,8 @@ class Configuration:
             setattr(self, name, value)
 
         self.__update_exclude_re()
+        if isinstance(self.static_files, str):
+            self.static_files = [self.static_files]
         self.__check_static_files()
 
     def set_static_files(self, static):
@@ -78,9 +82,10 @@ class Configuration:
             self.exclude_re = None
 
     def __check_static_files(self):
-        if self.static_files and not os.path.exists(self.static_files):
-            print(f"Static files not found in {self.static_files}")
-            sys.exit(4)
+        for path in self.static_files:
+            if not os.path.exists(path):
+                print(f"Static files path '{path}' does not exist")
+                sys.exit(4)
 
 
 config = Configuration()

@@ -1,6 +1,6 @@
 import dataclasses
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from trubar.config import Configuration
 from trubar.tests import TestBase
@@ -53,15 +53,27 @@ class ConfigTest(TestBase):
     @patch("builtins.print")
     def test_static_files(self, _):
         config = Configuration()
-        self.assertEqual(config.static_files, "")
+        self.assertEqual(len(config.static_files), 0)
 
         self.prepare("static-files: static_files_lan")
-        with patch("os.path.exists", Mock(return_value=False)):
+        with patch("os.path.exists", lambda x: "test.yaml" in x):
             self.assertRaises(SystemExit, config.update_from_file, self.fn)
 
-        with patch("os.path.exists", Mock(return_value=True)):
+        with patch("os.path.exists", lambda _: True):
             config.update_from_file(self.fn)
-            self.assertEqual(config.static_files, "static_files_lan")
+            self.assertEqual(config.static_files, ("static_files_lan", ))
+
+        self.prepare("static-files:\n"
+                     "- static_files_lan\n"
+                     "- ban\n"
+                     "- pet_podgan\n")
+        with patch("os.path.exists", lambda x: "test.yaml" in x or "lan" in x):
+            self.assertRaises(SystemExit, config.update_from_file, self.fn)
+
+        with patch("os.path.exists", lambda x: "test.yaml" in x or "an" in x):
+            config.update_from_file(self.fn)
+            self.assertEqual(config.static_files,
+                             ("static_files_lan", "ban", "pet_podgan"))
 
     def test_exclude(self):
         config = Configuration()

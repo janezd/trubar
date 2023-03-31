@@ -339,9 +339,10 @@ def translate(translations: MsgDict,
             report(f"Updating translated {name}", ReportUpdates)
         else:  # diff == 2
             report(f"Creating translated {name}", ReportUpdates)
-    if not dry_run and config.static_files:
-        report(f"Copying files from '{config.static_files}'", ReportAll)
-        copytree(config.static_files, destination, dirs_exist_ok=True)
+    if not dry_run:
+        for path in config.static_files:
+            report(f"Copying files from '{path}'", ReportAll)
+            copytree(path, destination, dirs_exist_ok=True)
 
     if not any_reports and verbosity > ReportCritical:
         print("No changes.")

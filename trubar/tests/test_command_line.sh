@@ -22,6 +22,16 @@ function diff() {
     eval "$oldstate"
 }
 
+function check_exit_code() {
+  # Test that exit code is nonzero (if $2 is omitted) or zero (if $2 is -ne)
+  # $1 is error message; see default below :)
+    if [ $? ${2:--eq} 0 ]
+    then
+        echo ${1:-"Non-zero exit code expected"}
+        exit 1
+    fi
+}
+
 cd shell_tests
 for d in ${1:-*}/
 do
