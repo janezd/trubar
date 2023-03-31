@@ -66,43 +66,22 @@ rm tmp/verb_output
 echo "... error: no -d or -i"
 set +e
 print_run 'trubar translate -s .. translations.yaml' tmp/output.txt
-if [ $? -eq 0 ]
-then
-    echo "Non-zero exit code expected"
-    exit 1
-fi
-
+check_exit_code
 
 echo "... error: both -i and -d are given"
 set +e
 print_run 'trubar translate -s .. -d tmp/si_foo -i translations.yaml' tmp/output.txt
-if [ $? -eq 0 ]
-then
-    echo "Non-zero exit code expected"
-    exit 1
-fi
+check_exit_code
 grep -q "incompatible" tmp/output.txt
-if [ $? -ne 0 ]
-then
-    echo "No recommendation is given"
-    exit 1
-fi
+check_exit_code "Invalid error message" -ne
 set -e
 rm tmp/output.txt
 
 echo "... error: invalid source dir + correction"
 set +e
 print_run 'trubar translate -s .. -d tmp/si_foo translations.yaml' tmp/output.txt
-if [ $? -eq 0 ]
-then
-    echo "Non-zero exit code expected"
-    exit 1
-fi
+check_exit_code
 grep -q "instead" tmp/output.txt
-if [ $? -ne 0 ]
-then
-    echo "No recommendation is given"
-    exit 1
-fi
+check_exit_code "No recommendation is given" -ne
 set -e
 rm tmp/output.txt

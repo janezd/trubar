@@ -55,33 +55,17 @@ rm tmp/some_messages.yaml
 echo "... invalid source dir"
 set +e
 print_run 'trubar collect -s ../test_project/__init__.py tmp/messages.yaml -q' /dev/null
-if [ $? -eq 0 ]
-then
-    echo "Non-zero exit code expected"
-    exit 1
-fi
+check_exit_code
 print_run 'trubar collect -s ../test_project_not tmp/messages.yaml -q' /dev/null
-if [ $? -eq 0 ]
-then
-    echo "Non-zero exit code expected"
-    exit 1
-fi
+check_exit_code
 set -e
 
 set +e
 echo "... invalid source dir correction"
 cp some_messages.yaml tmp/some_messages.yaml
 print_run 'trubar collect -s .. tmp/some_messages.yaml' tmp/output.txt
-if [ $? -eq 0 ]
-then
-    echo "Non-zero exit code expected"
-    exit 1
-fi
+check_exit_code
 grep -q "instead" tmp/output.txt
-if [ $? -ne 0 ]
-then
-    echo "No error message"
-    exit 1
-fi
+check_exit_code "No error message" -ne
 set -e
 rm tmp/some_messages.yaml tmp/output.txt
