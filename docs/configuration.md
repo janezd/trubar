@@ -22,7 +22,7 @@ The available options are
 : A string that, if specified, is prepended to the beginning of each source file with translation. The use is described in the section on plural forms.
 
 `static-files` (default: none)
-: A path of directory whose content is copied into translated sources. See the section on plural forms.
+: A path of directory, or a list of paths. whose content is copied into translated sources. See the section on plural forms. This option is overridden by `static` argument in the command line, if given.
 
 `exclude-pattern` (default: `"tests/test_"`)
 : A regular expression for filtering out the files that should not be translated. The primary use for this is to exclude unit tests.

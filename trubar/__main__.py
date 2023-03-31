@@ -83,8 +83,8 @@ def main() -> None:
         "-s", "--source", metavar="source-dir",
         required=True, help="source path")
     parser.add_argument(
-        "--static", metavar="static-files-dir",
-        help="directory with static files to copy")
+        "--static", metavar="static-files-dir", action="append",
+        help="directory(-ies) with static files to copy")
     parser.add_argument(
         "-q", "--quiet", action="store_true",
         help="supress intermediary outputs")

@@ -27,6 +27,13 @@ print_run 'trubar translate -s ../test_project -d tmp/si_translated translations
 diff -r tmp/si_translated/a static_files_lan/a
 rm -r tmp/si_translated
 
+echo "... with multiple static files"
+mkdir tmp/si_translated
+print_run 'trubar translate -s ../test_project -d tmp/si_translated translations.yaml -p submodule -q --static static_files_lan --static static_files_ban'
+diff -r tmp/si_translated/a static_files_lan/a
+diff -r tmp/si_translated/pet_podgan.txt static_files_ban/pet_podgan.txt
+rm -r tmp/si_translated
+
 echo "... dry run"
 print_run 'trubar translate -s ../test_project -d tmp/si_translated translations.yaml -q -n --static static_files_lan'
 diff -r exp/si_translated tmp/si_translated_copy
@@ -73,6 +80,24 @@ set +e
 print_run 'trubar translate -s .. -d tmp/si_foo -i translations.yaml' tmp/output.txt
 check_exit_code
 grep -q "incompatible" tmp/output.txt
+check_exit_code "Invalid error message" -ne
+set -e
+rm tmp/output.txt
+
+echo "... error: static files does not exist"
+set +e
+print_run 'trubar translate -s .. -d tmp/si_foo translations.yaml --static no_such_static' tmp/output.txt
+check_exit_code
+grep -q "no_such_static" tmp/output.txt
+check_exit_code "Invalid error message" -ne
+set -e
+rm tmp/output.txt
+
+echo "... error: one of static files does not exist"
+set +e
+print_run 'trubar translate -s .. -d tmp/si_foo translations.yaml --static static_files_lan --static no_such_static --static static_files_ban' tmp/output.txt
+check_exit_code
+grep -q "no_such_static" tmp/output.txt
 check_exit_code "Invalid error message" -ne
 set -e
 rm tmp/output.txt
