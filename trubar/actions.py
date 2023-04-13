@@ -219,7 +219,7 @@ class StringTranslator(cst.CSTTransformer):
 def collect(source: str,
             existing: Optional[MsgDict] = None,
             pattern: str = "",
-            *, quiet=False, print_unused=True) -> Tuple[MsgDict, MsgDict]:
+            *, quiet=False) -> Tuple[MsgDict, MsgDict]:
     messages = {}
     removed = {}
     for name, fullname in walk_files(source, "", select=True):
@@ -232,7 +232,7 @@ def collect(source: str,
             if name in existing:
                 removals = MsgNode(merge(
                     existing.pop(name).value, collected.value,
-                    "", name, print_unused))
+                    "", name, print_unused=False))
                 if removals.value:
                     removed[name] = removals
         elif name in existing:
@@ -241,10 +241,6 @@ def collect(source: str,
     existing = {name: trans for name, trans in existing.items()
                 if _any_translations(trans.value)}
     removed.update(existing)
-    if print_unused and existing:
-        print("The following file(s) no longer exist:")
-        print("\n".join(f"- {name}" for name in existing))
-
     return messages, removed
 
 

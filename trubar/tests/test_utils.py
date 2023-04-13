@@ -5,7 +5,7 @@ import unittest
 
 from unittest.mock import patch, Mock
 
-from trubar.utils import walk_files, check_any_files
+from trubar.utils import walk_files, check_any_files, unique_name, dump_removed
 from trubar.config import config
 import trubar.tests.test_module
 
@@ -176,6 +176,51 @@ class UtilsTest(unittest.TestCase):
             self.assertNotIn("-s foo/a/b", msg)
             print_.reset_mock()
             exit_.reset_mock()
+
+    def test_unique_name(self):
+        with patch("os.path.exists", return_value=False):
+            self.assertEqual(unique_name("some name.yaml"),
+                             "some name.yaml")
+
+        with patch("os.path.exists", return_value=True):
+            with patch("os.listdir", return_value=["some name.yaml"]) as listdir:
+                self.assertEqual(unique_name("some name.yaml"),
+                                 "some name (1).yaml")
+                listdir.assert_called_with(".")
+
+                self.assertEqual(unique_name("abc/def/some name.yaml"),
+                                 "abc/def/some name (1).yaml")
+                listdir.assert_called_with("abc/def")
+
+            with patch("os.listdir", return_value=["some name.yaml",
+                                                   "some name (1).yaml",
+                                                   "some name (2).yaml",
+                                                   "non sequitur.yaml",
+                                                   ]) as listdir:
+                self.assertEqual(unique_name("some name.yaml"),
+                                 "some name (3).yaml")
+                listdir.assert_called_with(".")
+
+            with patch("os.listdir", return_value=["some name.yaml",
+                                                   "some name (1).yaml",
+                                                   "non sequitur.yaml",
+                                                   "some name (4).yaml",
+                                                   ]) as listdir:
+                self.assertEqual(unique_name("some name.yaml"),
+                                 "some name (5).yaml")
+                listdir.assert_called_with(".")
+
+    @patch("trubar.utils.dump")
+    def test_dump_removed(self, mock_dump):
+        dump_removed({}, "removed.yaml", "abc/def/x.yaml")
+        mock_dump.assert_not_called()
+
+        msgs = Mock()
+        dump_removed(msgs, "removed.yaml", "abc/def/x.yaml")
+        mock_dump.assert_called_with(msgs, "removed.yaml")
+
+        dump_removed(msgs, None, "abc/def/xyz.jaml")
+        mock_dump.assert_called_with(msgs, "abc/def/removed-from-xyz.jaml")
 
 
 if __name__ == "__main__":

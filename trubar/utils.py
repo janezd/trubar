@@ -1,10 +1,12 @@
+import re
+
 import os
 import sys
 from pathlib import PurePath
-from typing import Iterator, Tuple
+from typing import Iterator, Tuple, Optional
 
 from trubar.config import config
-from trubar.messages import MsgDict
+from trubar.messages import MsgDict, dump
 
 
 def walk_files(path: str, pattern: str = "", *, select: bool
@@ -51,3 +53,26 @@ def check_any_files(translations: MsgDict, path: str):
     print("Paths in translations do not match any existing files.\n"
           f"One reason may be an incorrect source path{suggestion}.")
     sys.exit(5)
+
+
+def unique_name(name: str) -> str:
+    if not os.path.exists(name):
+        return name
+
+    path, name = os.path.split(name)
+    base, ext = os.path.splitext(name)
+    pattern = fr"{re.escape(base)} \((\d+)\){ext}"
+    existing = (re.match(pattern, fname) for fname in os.listdir(path or "."))
+    ver = 1 + max((int(mo.group(1)) for mo in existing if mo), default=0)
+    return os.path.join(path, f"{base} ({ver}){ext}")
+
+
+def dump_removed(removed: MsgDict,
+                 removed_name: Optional[str], name: str) -> None:
+    if not removed:
+        return
+    if not removed_name:
+        path, name = os.path.split(name)
+        removed_name = os.path.join(path, "removed-from-" + name)
+    removed_name = unique_name(removed_name)
+    dump(removed, removed_name)
