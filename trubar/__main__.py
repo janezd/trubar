@@ -7,7 +7,7 @@ from trubar.actions import \
     ReportCritical
 from trubar.messages import load, dump
 from trubar.config import config
-from trubar.utils import check_any_files
+from trubar.utils import check_any_files, dump_removed
 
 
 def check_dir_exists(path):
@@ -153,11 +153,10 @@ def main() -> None:
         else:
             existing = {}
         messages, removed = collect(args.source, existing, pattern,
-                                    quiet=args.quiet, print_unused=not args.removed)
-        if args.removed and removed:
-            dump(removed, args.removed)
+                                    quiet=args.quiet)
         if not args.dry_run:
             dump(messages, args.messages)
+        dump_removed(removed, args.removed, args.messages)
 
     elif args.action == "translate":
         check_dir_exists(args.source)

@@ -260,8 +260,7 @@ class ActionsTest(unittest.TestCase):
                            "foo": None, "bar": "baz"},
                 "b/e.py": {"qux": None},
                 "b/f.py": {"qui": "quo"}})
-            mess, remo = collect("", deepcopy(existing), "",
-                                 quiet=True, print_unused=False)
+            mess, remo = collect("", deepcopy(existing), "", quiet=True)
             self.assertEqual(
                 mess,
                 dict_to_msg_nodes({
@@ -279,10 +278,6 @@ class ActionsTest(unittest.TestCase):
             )
             print_.assert_not_called()
 
-            collect("", deepcopy(existing), "", quiet=True)
-            print_.assert_called()
-            print_.reset_mock()
-
             existing = dict_to_msg_nodes({
                 "b/d.py": {"def `d`": {"dd": "dtrans", "ddd": None},
                            "foo": None, "bar": "baz"},
@@ -293,8 +288,7 @@ class ActionsTest(unittest.TestCase):
             })
             file_list += [("b/e.py", "x/b/e.py"),
                           ("b/f.py", "x/b/f.py")]
-            mess, remo = collect("", deepcopy(existing), "d",
-                                 quiet=True, print_unused=False)
+            mess, remo = collect("", deepcopy(existing), "d", quiet=True)
             self.assertEqual(
                 mess,
                 dict_to_msg_nodes({
@@ -311,10 +305,6 @@ class ActionsTest(unittest.TestCase):
                 })
             )
             print_.assert_not_called()
-
-            collect("", deepcopy(existing), "d", quiet=True)
-            print_.assert_called()
-            print_.reset_mock()
 
     @patch("builtins.print")
     def test_collect_empty_file(self, _):
