@@ -55,7 +55,9 @@ confidence=
 disable=
     missing-docstring,              # I guess not
     no-else-return, no-else-raise,  # else's may actually improve readability
-    too-many-branches               # distracting rather than helpful
+    too-many-branches,              # distracting rather than helpful
+    duplicate-code,                 # I trust myself on this one
+    cyclic-import                   # weird false positive, can only disable globally
 
 
 [REPORTS]
