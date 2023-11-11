@@ -43,6 +43,9 @@ messages are removed.
 `-p <pattern>`, `--pattern <pattern>`
 : Gives a pattern that the file path must include to be considered. The pattern is checked against the entire path; e.g. `-p rm/pi` would match the path `farm/pigs.py:`.
 
+`-u`, `--newer`
+: Only consider source files that are newer than the message file (if it exists).
+
 `-r <removed-translations>`, `--removed <removed-translations>`
 : The name of the file for messages that were present in the messages file but no longer needed. If omitted, removed translations, if any, are saved to file `removed-from-<messages>`, where message is the name of the message file. If the file already exists `(<n>)` is appended to the name.
 

@@ -219,11 +219,14 @@ class StringTranslator(cst.CSTTransformer):
 def collect(source: str,
             existing: Optional[MsgDict] = None,
             pattern: str = "",
-            *, quiet=False) -> Tuple[MsgDict, MsgDict]:
+            *, quiet=False, min_time=None) -> Tuple[MsgDict, MsgDict]:
     messages = {}
     removed = {}
+    # No pattern when calling walk_files: we must get all files so that
+    # existing messages in skipped files are kept. We check the pattern here.
     for name, fullname in walk_files(source, "", select=True):
-        if pattern in name:
+        if pattern in name and (
+                min_time is None or os.stat(fullname).st_mtime >= min_time):
             if not quiet:
                 print(f"Parsing {name}")
             collected = StringCollector.parse_file(fullname)

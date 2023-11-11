@@ -56,6 +56,9 @@ def main() -> None:
         "-s", "--source", metavar="source-dir",
         required=True, help="source path")
     parser.add_argument(
+        "-u", "--newer", action="store_true",
+        help="check only source files that are newer than the message file")
+    parser.add_argument(
         "messages", metavar="messages",
         help="existing or new file with messages")
     parser.add_argument(
@@ -146,14 +149,17 @@ def main() -> None:
     pattern = args.pattern
 
     if args.action == "collect":
+        min_time = None
         check_dir_exists(args.source)
         if os.path.exists(args.messages):
             existing = load(args.messages)
             check_any_files(existing, args.source)
+            if args.newer:
+                min_time = os.stat(args.messages).st_mtime
         else:
             existing = {}
         messages, removed = collect(args.source, existing, pattern,
-                                    quiet=args.quiet)
+                                    quiet=args.quiet, min_time=min_time)
         if not args.dry_run:
             dump(messages, args.messages)
         dump_removed(removed, args.removed, args.messages)
