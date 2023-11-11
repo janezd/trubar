@@ -26,6 +26,17 @@ diff tmp/some_messages.yaml exp/merged_messages.yaml
 diff tmp/removed.yaml exp/removed.yaml
 rm tmp/some_messages.yaml tmp/removed.yaml
 
+echo "... merge with existing file, with --newer"
+cp some_messages.yaml tmp/some_messages.yaml
+touch -t 11111230.00 ../test_project/__init__.py
+touch -t 11111239.00 tmp/some_messages.yaml
+touch -t 11111239.00 ../test_project/submodule/apples.py
+touch -t 11111245.00 ../test_project/trash/nothing.py
+print_run 'trubar collect -s ../test_project -r tmp/removed.yaml --newer tmp/some_messages.yaml -q'
+diff tmp/some_messages.yaml exp/merged_messages_newer.yaml
+diff tmp/removed.yaml exp/removed_newer.yaml
+rm tmp/some_messages.yaml tmp/removed.yaml
+
 echo "... merge with existing file, default removed file"
 cp some_messages.yaml tmp/some_messages.yaml
 print_run 'trubar collect -s ../test_project tmp/some_messages.yaml -q'
