@@ -46,6 +46,7 @@ def readlines(lines):
     comments = []
     comment_start = None
     linegen = enumerate(lines, start=1)
+    lineno, line = 0, ""  # for error reporting for empty files
     for lineno, line in linegen:
         # Skip empty lines
         if not line.strip():
@@ -123,7 +124,8 @@ def readlines(lines):
 
 def dump(d, indent=""):
     def quotescape(s, allow_colon):
-        if "\n" in s \
+        if not s \
+                or "\n" in s \
                 or ": " in s and not allow_colon \
                 or s[0] in " #\"'|" \
                 or s[-1] in " \t\n":
