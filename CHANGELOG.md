@@ -1,3 +1,11 @@
+## 0.2.5 - 2024-01-17
+
+#### Bug fixes
+
+- Jaml reader crashed on empty files instead of reporting an error
+- Jaml write crashed on empty strings
+- Support (= test in CI) Python 3.11 and 3.12
+
 ## 0.2.4 - 2023-03-30
 
 #### New and improved functionality
