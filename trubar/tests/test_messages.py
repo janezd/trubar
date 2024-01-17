@@ -169,7 +169,7 @@ module2/def `g`: Unexpectedly not a namespace
 
     @patch("builtins.open")
     @patch("yaml.dump")
-    @patch("trubar.jaml.dump")  # pylint wtf?, pylint: disable=cyclic-import
+    @patch("trubar.jaml.dump")
     def test_dump(self, jaml_dump, yaml_dump, _):
         msgdict = {"x": MsgNode("foo", ["bar", "baz"])}
         dump(msgdict, "x.jaml")
