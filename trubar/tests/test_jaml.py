@@ -63,6 +63,9 @@ class `B`:
              })
             })
 
+    def test_read_empty_file(self):
+        self.assertRaisesRegex(jaml.JamlError, "unexpected end", jaml.read, "")
+
     def test_read_quoted_blocks(self):
         self.assertEqual(jaml.read('''a/b.py:
     def `f`:
@@ -272,6 +275,7 @@ class JamlDumperTest(unittest.TestCase):
                                                   "baz": MsgNode(None, ["# eh"])}),
                                "yada": MsgNode(comments=["# bada", "# boom"],
                                                value=True),
+                               "": MsgNode(""),
                                }),
                 "class `A`":
                     MsgNode(value=False)}
@@ -290,6 +294,7 @@ a/b.py:
     # bada
     # boom
     yada: true
+    '': ""
 class `A`: false
 """[1:])
 
