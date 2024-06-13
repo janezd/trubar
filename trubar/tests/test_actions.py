@@ -1,3 +1,5 @@
+# pylint: disable=protected-access, invalid-name
+
 import re
 import io
 import os
@@ -9,14 +11,60 @@ from contextlib import redirect_stdout
 import libcst as cst
 
 from trubar.actions import \
-    StringCollector, StringTranslator, Stat, \
-    collect, missing, merge, template, TranslationError
+    collect, missing, merge, template, \
+    StringCollector, StringTranslator, StringTranslatorMultilingual, \
+    CountImportsFromFuture, Stat, TranslationError
 
-import trubar.tests.test_module
+from trubar import config
+from trubar.config import LanguageDef
 from trubar.messages import dict_from_msg_nodes, dict_to_msg_nodes, MsgNode
 from trubar.tests import yamlized
+import trubar.tests.test_module
 
 test_module_path = os.path.split(trubar.tests.test_module.__file__)[0]
+
+
+class CountImportsFromFutureTest(unittest.TestCase):
+    module_with_futures = """
+'''
+this is a docstring
+'''
+
+# A comment here
+from __future__ import annotations
+
+# A comment there
+"And another string"
+from __future__ import division
+from __future__ import print_function # test here
+
+# A comment everywhere
+import os
+"""
+
+    module_without_futures = """
+'''
+this is a docstring
+'''
+# test here
+# A comment here
+import os
+
+# A comment there
+"And another string"
+import path
+ """
+
+    def test_counts(self):
+        tree = cst.parse_module(self.module_with_futures)
+        cif = CountImportsFromFuture()
+        tree.visit(cif)
+        self.assertEqual(cif.count, 3)
+
+        tree = cst.parse_module(self.module_without_futures)
+        cif = CountImportsFromFuture()
+        tree.visit(cif)
+        self.assertEqual(cif.count, 0)
 
 
 class StringCollectorTest(unittest.TestCase):
@@ -216,6 +264,281 @@ print('''f ' g''')
 print(\"\"\"f " g\"\"\")
 print("samo {oklepaji}!")
 """)
+
+    def test_syntax_error(self):
+        tree = cst.parse_module("print('foo')")
+        translator = yamlized(StringTranslator)({"foo": 'bar\nbaz'}, tree)
+        self.assertRaisesRegex(
+            TranslationError,
+            re.compile(".*foo.*bar.*", re.DOTALL), tree.visit, translator)
+
+    def test_import_from_future(self):
+        module = CountImportsFromFutureTest.module_with_futures
+        imports = "import plural\nimport dual"
+        auto_import = cst.parse_module(imports).body
+        tree = cst.parse_module(module)
+        translator = StringTranslator({}, tree, auto_import, 3)
+        translated = tree.visit(translator)
+        trans_source = tree.code_for_node(translated)
+        self.assertEqual(
+            trans_source,
+            module.replace(
+                "test here\n",
+                "test here\nimport plural\nimport dual\n")
+        )
+
+        module = CountImportsFromFutureTest.module_without_futures
+        imports = "import plural\nimport dual"
+        auto_import = cst.parse_module(imports).body
+        tree = cst.parse_module(module)
+        translator = StringTranslator({}, tree, auto_import, 0)
+        translated = tree.visit(translator)
+        trans_source = tree.code_for_node(translated)
+        self.assertEqual(
+            trans_source,
+            module.replace(
+                "# test here\n",
+                "import plural\nimport dual\n# test here\n")
+        )
+
+
+class StringTranslatorMultilingualTest(unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        config.config.languages = {
+            "de": LanguageDef("Deutsch", "German", True),
+            "si": LanguageDef("Slovenščina", "Slovenian", False),
+            "en": LanguageDef("English", "English", False)}
+
+    def tearDown(self):
+        config.config.languages = None
+
+    def _translate(self, module, messages, add_initial=False):
+        tree = cst.parse_module(module)
+        message_tables = [["msg1", "msg2", "msg3"],
+                          ["msg4", "msg5", "msg6"],
+                          ["msg7", "msg8", "msg8"]] if add_initial else [[], [], []]
+        translator = StringTranslatorMultilingual(
+            [{}] + [dict_to_msg_nodes(d) for d in messages],
+            message_tables,
+            tree)
+        translated = tree.visit(translator)
+        trans_source = tree.code_for_node(translated)
+        return trans_source, message_tables
+
+    def test_translator(self):
+        module = """
+# A comment
+class A:
+    def b(x):  # Another comment
+        def c(x):
+              d = '''foo'''  # intentional bad indentation
+              e = "bar"
+        a = "baz"
+
+        class B:
+           f = f"baz{42}"
+
+
+class C:
+    g = 'crux'
+"""
+
+        trans_foo = {'class `A`': {'def `b`': {'def `c`': {'foo': 'sea food',
+                                                           'bar': None},
+                                               'baz': True,
+                                               'class `B`': {'baz{42}': False}}},
+                     'class `C`': {'crux': ""}}
+
+        trans_fee = {'class `A`': {'def `b`': {'def `c`': {'bar': "no-bar"},
+                                               'class `B`': {'baz{42}': "bar(1)"}}}}
+
+        trans_source, message_tables = self._translate(
+            module, [trans_foo, trans_fee], True)
+        self.assertEqual(trans_source, """
+# A comment
+class A:
+    def b(x):  # Another comment
+        def c(x):
+              d = _tr.m[3, '''foo''']  # intentional bad indentation
+              e = _tr.m[4, "bar"]
+        a = "baz"
+
+        class B:
+           f = _tr.e(_tr.c(5, "baz{42}"))
+
+
+class C:
+    g = _tr.m[6, 'crux']
+""")
+        self.assertEqual(
+            message_tables,
+            [['msg1', 'msg2', 'msg3', 'foo', 'bar', 'f"baz{42}"', 'crux'],
+             ['msg4', 'msg5', 'msg6', 'sea food', 'bar', 'f"baz{42}"', ''],
+             ['msg7', 'msg8', 'msg8', 'foo', 'no-bar', 'f"bar(1)"', 'crux']]
+        )
+
+    def test_f_string_languages(self):
+        node = Mock()
+        m = StringTranslatorMultilingual._f_string_languages
+
+        node.prefix = "f"
+        node.quote = "'"
+        # Original is an f-string - don't add
+        self.assertEqual(m(node, ["a string", "one", "two{x}"]), [])
+
+        node.prefix = ""
+        m = StringTranslatorMultilingual._f_string_languages
+        # No language needs it
+        self.assertEqual(m(node, ["a string", "one", "two"]),
+                         [])
+
+        # English needs it
+        self.assertEqual(m(node, ["a string", "one", "two{x}"]),
+                         ["English (two{x})"])
+        # Slovenian and English needs it
+        self.assertEqual(m(node, ["a string", "one{y}", "two{x}"]),
+                         ["Slovenian (one{y})", "English (two{x})"])
+        # Original is not an f-string, but has {},
+        # hence translations are supposed to have them without being f-strings
+        self.assertEqual(m(node, ["a string{x}", "one{y}", "two{x}"]),
+                         [])
+
+        for quote in ['"', "'", "'''", '"""']:
+            self.assertEqual(m(node, ["a string", "one", f"t{quote}wo{{x}}"]),
+                             [f"English (t{quote}wo{{x}})"])
+
+        # No smart quotes
+        with patch("trubar.config.config.smart_quotes", False):
+            self.assertEqual(
+                m(node, ["a string", "on'e", "tw'o{x}"]),
+                [])
+
+    def test_get_quote(self):
+        node = Mock()
+        m = StringTranslatorMultilingual._get_quote
+
+        node.prefix = ""
+        node.quote = '"'
+        self.assertEqual(
+            m(node, "'a string'", ["a string", "one", "two{x}"],
+              "", ["English"]),
+            '"')
+
+        node.quote = "'''"
+        self.assertEqual(
+            m(node, "'a string'", ["a string", "one", "two{x}"],
+              "", ["English"]),
+            "'''")
+
+        node.quote = "'"
+        self.assertEqual(
+            m(node, "'a string'", ["a string", "one", "two{x}"],
+              "", ["English"]),
+            "'")
+
+        node.quote = "'"
+        self.assertEqual(
+            m(node, "'a string'", ["a string", "one", "tw'o{x}"],
+              "", ["English"]),
+            '"')
+
+        node.quote = "'"
+        self.assertEqual(
+            m(node, "'a str'ing'", ["a str'ing", "one", "two{x}"],
+              "", ["English"]),
+            '"')
+
+        node.quote = "'"
+        self.assertEqual(
+            m(node, "'a str'ing'", ["a str'ing", "on\"e", "two{x}"],
+              "", ["English"]),
+            "'''")
+
+        node.quote = "'"
+        self.assertEqual(
+            m(node, "'a str'''ing'", ["a str'''ing", "on\"e", "two{x}"],
+              "", ["English"]),
+            '"""')
+
+        node.quote = "'"
+        self.assertRaises(
+            TranslationError,
+            m, node, "'a str'''ing'", ["a str'''ing", "one", "tw\"\"\"o{x}"],
+            "", ["English"])
+
+        with patch("trubar.config.config.smart_quotes", False):
+            node.quote = "'"
+            self.assertRaises(
+                TranslationError,
+                m, node, "'a str'ing'", ["a str'ing", "one", "two{x}"],
+                "", ["English"])
+
+            node.quote = "'"
+            self.assertRaises(
+                TranslationError,
+                m, node, "'a str'''ing'", ["a str'''ing", "one", "tw\"\"\"o{x}"],
+                "", ["English"])
+
+    def test_auto_prefix(self):
+        # No f-strings, no problems
+        translation, tables = self._translate(
+            "print('foo')", [{"foo": "don't"}, {"foo": 'x"y'}])
+        self.assertEqual(translation, "print(_tr.m[0, 'foo'])")
+        self.assertEqual(tables, [["foo"], ["don't"], ['x"y']])
+
+        # Original is an f-string, and so is one of translations, other is missing
+        translation, tables = self._translate(
+            "print(f'fo{o}')", [{"fo{o}": "do{n}t"}, {}])
+        self.assertEqual(translation, "print(_tr.e(_tr.c(0, 'fo{o}')))")
+        self.assertEqual(tables, [["f'fo{o}'"], ["f'do{n}t'"], ["f'fo{o}'"]])
+
+        # Original is an f-string, translations are not
+        translation, tables = self._translate(
+            "print(f'fo{o}')", [{"fo{o}": "dont"}, {}])
+        self.assertEqual(translation, "print(_tr.e(_tr.c(0, 'fo{o}')))")
+        self.assertEqual(tables, [["f'fo{o}'"], ["f'dont'"], ["f'fo{o}'"]])
+
+        # Original is not an f-string, one of translations is
+        translation, tables = self._translate(
+            "print('foo')", [{"foo": "do{n}t"}, {"foo": "bar"}])
+        self.assertEqual(translation, "print(_tr.e(_tr.c(0, 'foo')))")
+        self.assertEqual(tables, [["f'foo'"], ["f'do{n}t'"], ["f'bar'"]])
+
+        with patch("trubar.config.config.auto_prefix", False):
+            translation, tables = self._translate(
+                "print('foo')", [{"foo": "do{n}t"}, {"foo": "bar"}])
+            self.assertEqual(translation, "print(_tr.m[0, 'foo'])")
+            self.assertEqual(tables, [['foo'], ['do{n}t'], ['bar']])
+
+    def test_smart_quotes_and_f(self):
+        # Original has an f-string, and translations have different quotes
+        translation, tables = self._translate(
+            "print(f'foo')", [{"foo": "don't"}, {"foo": 'x"y'}])
+        self.assertEqual(translation, "print(_tr.e(_tr.c(0, 'foo')))")
+        self.assertEqual(
+            tables,
+            [["f'''foo'''"], ["f'''don't'''"], ["f'''x\"y'''"]])
+
+        # One language has an f-string, and translations have different quotes
+        self._translate(
+          "print('foo')", [{"foo": "d{o}n't"}, {"foo": 'x"y'}])
+        self.assertEqual(translation, "print(_tr.e(_tr.c(0, 'foo')))")
+        self.assertEqual(
+            tables,
+            [["f'''foo'''"], ["f'''don't'''"], ["f'''x\"y'''"]])
+
+        with patch("trubar.config.config.smart_quotes", False):
+            # Mismatching quotes
+            self.assertRaises(
+                TranslationError,
+                self._translate, "print(f'foo')", [{"foo": "do{n}'t"}, {}])
+
+            # Original has an f-string, but quotes are OK
+            translation, tables = self._translate(
+                'print(f"foo")', [{"foo": "don't"}, {"foo": "x'y"}])
+            self.assertEqual(translation, 'print(_tr.e(_tr.c(0, "foo")))')
+            self.assertEqual(tables, [['f"foo"'], ['f"don\'t"'], ['f"x\'y"']])
 
     def test_syntax_error(self):
         tree = cst.parse_module("print('foo')")

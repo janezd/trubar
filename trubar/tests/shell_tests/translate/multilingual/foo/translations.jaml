@@ -1,0 +1,18 @@
+__init__.py:
+    class `A`:
+        A class attribute: false
+        def `f`:
+            default: befault
+            some/directory: an {f} foo string
+            File {x}: false
+            Not file {x + ".bak"}: Ne datoteka {x + ".bak"}
+            '{"nonsense"}': '{"sense"}'
+    __main__: false
+    Please don't run this.: null
+    Import it, if you must.: {x} +'" {y}
+submodule/apples.py:
+    Oranges: Flemons
+trash/nothing.py:
+    def `f`:
+        To see here: null
+        ', really.': null

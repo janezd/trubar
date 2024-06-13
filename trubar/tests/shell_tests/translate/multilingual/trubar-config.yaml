@@ -1,0 +1,15 @@
+languages:
+  foo:
+      name: Foo
+      international-name: Foolanguage
+  en:
+    name: English
+    original: true
+  si:
+      name: Slovenščina
+      international-name: Slovenian
+      auto-import: from something import anythin
+auto-import: |2
+  from anything import something
+  _tr = Translator("Orange", "biolab.si", "Orange")
+  del Translator
