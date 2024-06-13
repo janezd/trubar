@@ -5,7 +5,8 @@ import unittest
 
 from unittest.mock import patch, Mock
 
-from trubar.utils import walk_files, check_any_files, unique_name, dump_removed
+from trubar.utils import \
+    walk_files, check_any_files, unique_name, dump_removed, make_list
 from trubar.config import config
 import trubar.tests.test_module
 
@@ -123,13 +124,13 @@ class UtilsTest(unittest.TestCase):
         translations = dict.fromkeys(keys)
         with patch("trubar.utils.walk_files",
                    Mock(return_value=[(k, k) for k in keys])):
-            check_any_files(translations, "foo/bar")
+            check_any_files(set(translations), "foo/bar")
             exit_.assert_not_called()
             print_.assert_not_called()
 
         with patch("trubar.utils.walk_files",
                    Mock(return_value=[("t/x/" + k, k) for k in keys])):
-            check_any_files(translations, "foo/bar")
+            check_any_files(set(translations), "foo/bar")
             exit_.assert_called()
             print_.assert_called()
             msg = print_.call_args[0][0]
@@ -138,7 +139,7 @@ class UtilsTest(unittest.TestCase):
             exit_.reset_mock()
 
             home = os.path.expanduser("~/foo/bar")
-            check_any_files(translations, home)
+            check_any_files(set(translations), home)
             exit_.assert_called()
             msg = print_.call_args[0][0]
             self.assertIn("-s ~/foo/bar/t/x", msg)
@@ -146,7 +147,7 @@ class UtilsTest(unittest.TestCase):
             exit_.reset_mock()
 
             with patch("sys.platform", "win32"):
-                check_any_files(translations, home)
+                check_any_files(set(translations), home)
                 exit_.assert_called()
                 print_.assert_called()
                 msg = print_.call_args[0][0]
@@ -158,7 +159,7 @@ class UtilsTest(unittest.TestCase):
         keys = "a/x.py a/y.py a/b/x.py a/b/z.py a/b/u.py".split()
         with patch("trubar.utils.walk_files",
                    Mock(return_value=[(k, k) for k in keys])):
-            check_any_files(dict.fromkeys(["x.py", "z.py", "u.py"]), "foo")
+            check_any_files({"x.py", "z.py", "u.py"}, "foo")
             exit_.assert_called()
             print_.assert_called()
             msg = print_.call_args[0][0]
@@ -169,7 +170,7 @@ class UtilsTest(unittest.TestCase):
         keys = "a/x.py a/y.py a/b/x.py a/b/z.py".split()
         with patch("trubar.utils.walk_files",
                    Mock(return_value=[(k, k) for k in keys])):
-            check_any_files(dict.fromkeys(["x.py", "z.py", "u.py"]), "foo")
+            check_any_files({"x.py", "z.py", "u.py"}, "foo")
             exit_.assert_called()
             print_.assert_called()
             msg = print_.call_args[0][0]
@@ -221,6 +222,13 @@ class UtilsTest(unittest.TestCase):
 
         dump_removed(msgs, None, "abc/def/xyz.jaml")
         mock_dump.assert_called_with(msgs, "abc/def/removed-from-xyz.jaml")
+
+    def test_make_list(self):
+        self.assertEqual(make_list(["a"]), "a")
+        self.assertEqual(make_list(["a", "b"]), "a and b")
+        self.assertEqual(make_list(["a", "b", "c"]), "a, b and c")
+        self.assertEqual(make_list(["a"], "use"), "a uses")
+        self.assertEqual(make_list(["a", "b", "c"], "use"), "a, b and c use")
 
 
 if __name__ == "__main__":

@@ -3,16 +3,24 @@ import os
 import re
 import locale
 import dataclasses
+from typing import Optional
 
 import yaml
 
 
 @dataclasses.dataclass
+class LanguageDef:
+    name: str
+    international_name: str
+    is_original: bool
+
+@dataclasses.dataclass
 class Configuration:
+    base_dir: Optional[str] = None
     smart_quotes: bool = True
     auto_prefix: bool = True
 
-    auto_import: str = ""
+    auto_import: tuple = ()
 
     static_files: tuple = ()
 
@@ -21,6 +29,8 @@ class Configuration:
     encoding: str = \
         "locale" if sys.version_info >= (3, 10) \
         else locale.getpreferredencoding(False)
+
+    languages = None
 
     def __post_init__(self):
         self.__update_exclude_re()
@@ -36,8 +46,12 @@ class Configuration:
             print(f"Invalid configuration file: {exc}")
             sys.exit(4)
 
+        self.base_dir, _ = os.path.split(filename)
         fieldict = {field.name: field for field in dataclasses.fields(self)}
         for name, value in settings.items():
+            if name == "languages":
+                self.parse_languages(value)
+                continue
             name = name.replace("-", "_")
             field = fieldict.get(name, None)
             if field is None:
@@ -57,15 +71,57 @@ class Configuration:
                 except ValueError:
                     print(f"Invalid value for '{name}': {value}")
                     sys.exit(4)
-            setattr(self, name, value)
+            if field.type is tuple and hasattr(self, name):
+                setattr(self, name, getattr(self, name) + value)
+            else:
+                setattr(self, name, value)
 
         self.__update_exclude_re()
         if isinstance(self.static_files, str):
-            self.static_files = [self.static_files]
+            self.static_files = (self.static_files, )
         self.__check_static_files()
 
+    def parse_languages(self, value):
+        language_options = {"name", "original", "international-name",
+                            "auto-import"}
+        self.languages = {}
+        for code, values in value.items():
+            if "name" not in values:
+                print(f"Language '{code}' is missing a 'name' option")
+                sys.exit(4)
+            name = values["name"]
+            international_name = values.get("international-name", name)
+            # Use a list, not set to keep the original order
+            unknown = [opt for opt in values if opt not in language_options]
+            if unknown:
+                print(f"Unknown options for language '{code}': " +
+                      ', '.join(unknown))
+                sys.exit(4)
+            is_original = values.get("original", False)
+            lang_dir = os.path.join(self.base_dir, code)
+            if not (is_original or os.path.exists(lang_dir)):
+                print(f"Directory for language '{code}' is missing "
+                      f"({lang_dir}).")
+                sys.exit(4)
+            self.languages[code] = LanguageDef(
+                name=name,
+                international_name=international_name,
+                is_original=is_original
+            )
+            if "auto-import" in values:
+                self.auto_import = self.auto_import + (values["auto-import"], )
+            static_dir = os.path.join(lang_dir, "static")
+            if os.path.exists(static_dir):
+                self.static_files = self.static_files + (static_dir, )
+        sorted_langs = sorted(self.languages.items(),
+                              key=lambda item: not item[1].is_original)
+        if not sorted_langs[0][1].is_original:
+            print("Original language is not defined")
+            sys.exit(4)
+        self.languages = dict(sorted_langs)
+
     def set_static_files(self, static):
-        self.static_files = static
+        self.static_files = self.static_files + tuple(static)
         self.__check_static_files()
 
     def set_exclude_pattern(self, pattern):

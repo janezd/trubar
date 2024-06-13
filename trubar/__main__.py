@@ -153,7 +153,7 @@ def main() -> None:
         check_dir_exists(args.source)
         if os.path.exists(args.messages):
             existing = load(args.messages)
-            check_any_files(existing, args.source)
+            check_any_files(set(existing), args.source)
             if args.newer:
                 min_time = os.stat(args.messages).st_mtime
         else:
@@ -176,10 +176,18 @@ def main() -> None:
         if args.static:
             config.set_static_files(args.static)
         verbosity = ReportCritical if args.quiet else args.verbosity
-        messages = load(args.messages)
-        check_any_files(messages, args.source)
-        translate(messages, args.source, args.dest, pattern,
-                  verbosity=verbosity, dry_run=args.dry_run)
+        if config.languages:
+            messages = [
+                load(os.path.join(config.base_dir, code, args.messages))
+                if not settings.is_original else {}
+                for code, settings in config.languages.items()]
+        else:
+            messages = [load(args.messages)]
+        trans_keys = set.union(*(set(trans) for trans in messages))
+        check_any_files(trans_keys, args.source)
+        translate(
+            messages, args.source, args.dest, pattern,
+            verbosity=verbosity, dry_run=args.dry_run)
 
     elif args.action == "merge":
         additional = load(args.translations)

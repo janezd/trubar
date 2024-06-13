@@ -70,6 +70,10 @@ if [[ ! -z $(cat tmp/verb_output) ]] ; then
 fi
 rm tmp/verb_output
 
+print_run 'trubar --conf multilingual/trubar-config.yaml translate -s ../test_project -d tmp/multilingual translations.jaml' tmp/verb_output
+diff -r exp/multilingual tmp/multilingual
+rm -r tmp/multilingual
+
 echo "... error: no -d or -i"
 set +e
 print_run 'trubar translate -s .. translations.yaml' tmp/output.txt
