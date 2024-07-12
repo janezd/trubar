@@ -2,8 +2,9 @@ import argparse
 import os
 import sys
 
+from trubar import translate
 from trubar.actions import \
-    collect, translate, merge, missing, template, stat, \
+    collect, merge, missing, template, stat, \
     ReportCritical
 from trubar.messages import load, dump
 from trubar.config import config
@@ -176,18 +177,8 @@ def main() -> None:
         if args.static:
             config.set_static_files(args.static)
         verbosity = ReportCritical if args.quiet else args.verbosity
-        if config.languages:
-            messages = [
-                load(os.path.join(config.base_dir, code, args.messages))
-                if not settings.is_original else {}
-                for code, settings in config.languages.items()]
-        else:
-            messages = [load(args.messages)]
-        trans_keys = set.union(*(set(trans) for trans in messages))
-        check_any_files(trans_keys, args.source)
-        translate(
-            messages, args.source, args.dest, pattern,
-            verbosity=verbosity, dry_run=args.dry_run)
+        translate(args.messages, args.source, args.dest,
+                  pattern=pattern, verbosity=verbosity, dry_run=args.dry_run)
 
     elif args.action == "merge":
         additional = load(args.translations)
