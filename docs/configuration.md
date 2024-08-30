@@ -27,5 +27,5 @@ The available options are
 `exclude-pattern` (default: `"tests/test_"`)
 : A regular expression for filtering out the files that should not be translated. The primary use for this is to exclude unit tests.
 
-`encoding` (default: system locale)
+`encoding` (default: `"utf-8"`)
 : Characted encoding for .jaml files, such as `"utf-8"` or `"cp-1252"`.

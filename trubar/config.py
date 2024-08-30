@@ -26,9 +26,7 @@ class Configuration:
 
     exclude_pattern: str = "tests/test_"
 
-    encoding: str = \
-        "locale" if sys.version_info >= (3, 10) \
-        else locale.getpreferredencoding(False)
+    encoding: str = "utf-8"
 
     languages = None
 
