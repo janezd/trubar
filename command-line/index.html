@@ -114,7 +114,7 @@
 <dt><code>-h</code></dt>
 <dd>Prints help and exits.</dd>
 <dt><code>--conf &lt;conf-file&gt;</code></dt>
-<dd>Specifies the <a href="../configuration">configuration file</a>.</dd>
+<dd>Specifies the <a href="../configuration">configuration file</a>. If not given, Trubar searches for <code>.trubarconfig.yaml</code> and <code>trubar-config.yaml</code> in current directory, directory with messages, and in source directory (for <code>collect</code> and <code>translate</code>).</dd>
 </dl>
 <p>Action must be one of the following:</p>
 <ul>
@@ -126,9 +126,8 @@
 <li><strong>stat:</strong> reports on the number of type of translations.</li>
 </ul>
 <h3 id="collect">Collect</h3>
-<pre><code>trubar collect [-h] [-p pattern] [-s source-dir]
-               [-r removed-translations] [-q] [-n]
-               messages
+<pre><code>trubar collect [-h] [-p pattern] [-r removed-translations] [-q] [-n]
+               -s source-dir messages
 </code></pre>
 <p>Collects strings from the specified source tree, skipping files that don't end with <code>.py</code> or whose path includes <code>tests/test_</code>. (The latter can be changed in <a href="../configuration">configuration file</a>.) Strings with no effect are ignored; this is aimed at docstrings, but will also skip any other unused strings.</p>
 <p>If the output file already exists, it is updated: new messages are merged into it, existing translations are kept, and obsolete messages are removed. The latter can be recorded using the option <code>-r</code>.</p>
@@ -137,11 +136,13 @@
 <dd>The name of the file with messages (preferrably .jaml). If the file does not exist, it is created, otherwise it is updated with new messages and obsolete
 messages are removed.</dd>
 <dt><code>-s &lt;path&gt;</code>, <code>--source &lt;path&gt;</code></dt>
-<dd>Defines the root directory of the source tree. Default is the current directory.</dd>
+<dd>Defines the root directory of the source tree.</dd>
 <dt><code>-p &lt;pattern&gt;</code>, <code>--pattern &lt;pattern&gt;</code></dt>
 <dd>Gives a pattern that the file path must include to be considered. The pattern is checked against the entire path; e.g. <code>-p rm/pi</code> would match the path <code>farm/pigs.py:</code>.</dd>
+<dt><code>-u</code>, <code>--newer</code></dt>
+<dd>Only consider source files that are newer than the message file (if it exists).</dd>
 <dt><code>-r &lt;removed-translations&gt;</code>, <code>--removed &lt;removed-translations&gt;</code></dt>
-<dd>The name of the file for messages that were present in the messages file but no longer needed.</dd>
+<dd>The name of the file for messages that were present in the messages file but no longer needed. If omitted, removed translations, if any, are saved to file <code>removed-from-&lt;messages&gt;</code>, where message is the name of the message file. If the file already exists <code>(&lt;n&gt;)</code> is appended to the name.</dd>
 </dl>
 <p><code>-n</code>, <code>--dry-run</code>: Run, but do not change the output file. The file with removed messages is still written.</p>
 <dl>
@@ -149,23 +150,24 @@ messages are removed.</dd>
 <dd>Supresses the output, except critical error messages.</dd>
 </dl>
 <h3 id="translate">Translate</h3>
-<pre><code>trubar translate [-h] [-s source-dir] [-d destination-dir]
-                 [-p pattern] [--static static-files-dir]
+<pre><code>trubar translate [-h] [-p pattern] [--static static-files-dir]
                  [-q] [-v {0,1,2,3}] [-n]
-                 messages
+                 -s source-dir -d destination-dir messages
 </code></pre>
-<p>Translates files with extension .py and writes them to destination directories, and copies all other files. Untranslated strings (marked <code>null</code>, <code>false</code> or <code>true</code>) are kept as they are. The action overwrites any existing files.</p>
+<p>Translates files with extension .py and writes them to destination directories, and copies all other files. Alternatively, <code>-i</code> can be given for translation in-place. Untranslated strings (marked <code>null</code>, <code>false</code> or <code>true</code>) are kept as they are. The action overwrites any existing files.</p>
 <dl>
 <dt><code>messages</code></dt>
 <dd>the name of the file with translated messages.</dd>
 <dt><code>-s &lt;source-dir&gt;</code>, <code>--source &lt;source-dir&gt;</code></dt>
-<dd>Root directory of the source tree. Default is the current directory.</dd>
-<dt><code>-d &lt;dest-path&gt;</code>, <code>--dest &lt;dest-path&gt;</code> (required)</dt>
-<dd>Destination directory.</dd>
+<dd>Root directory of the source tree.</dd>
+<dt><code>-d &lt;dest-path&gt;</code>, <code>--dest &lt;dest-path&gt;</code></dt>
+<dd>Destination directory. Either this option or <code>-i</code> is required.</dd>
+<dt><code>-i</code>, <code>--inplace</code></dt>
+<dd>In-place translation. Either this or <code>-d</code> is required.</dd>
 <dt><code>-p &lt;pattern&gt;</code>, <code>--pattern &lt;pattern&gt;</code></dt>
 <dd>A pattern that the file path must include to be considered.</dd>
 <dt><code>--static &lt;static-files-path&gt;</code></dt>
-<dd>Copies the file from the given path into destination tree; essentially <code>cp -R &lt;static-files-path&gt; &lt;dest-path&gt;/&lt;static-file-path&gt;</code>. This is used for <a href="../localization/#plural-forms">adding modules with target-language related features</a>, like those for plural forms.</dd>
+<dd>Copies the file from the given path into destination tree; essentially <code>cp -R &lt;static-files-path&gt; &lt;dest-path&gt;/&lt;static-file-path&gt;</code>. This is used, for instance, for <a href="../localization/#plural-forms">adding modules with target-language related features</a>, like those for plural forms. This option can be given multiple times. If given, this argument overrides <code>static-files</code> from config file.</dd>
 <dt><code>-q</code>, <code>--quiet</code></dt>
 <dd>Supresses output messages, except for critical. Overrides option <code>-v</code>.</dd>
 <dt><code>-v &lt;level&gt;</code>, <code>--verbosity &lt;level&gt;</code></dt>

@@ -95,11 +95,12 @@
             <div class="section" itemprop="articleBody">
               
                 <h2 id="configuration-file">Configuration file</h2>
-<p>Configuration file is a simple yaml file with options-value pairs, for instance</p>
+<p>Configuration file is a yaml file with options-value pairs, for instance</p>
 <pre><code>smart-quotes: false
 auto-prefix: true
 auto-import: &quot;from orangecanvas.utils.localization.si import plsi, plsi_sz&quot;
 </code></pre>
+<p>If configuration is not specified, Truber looks for <code>.trubarconfig.yaml</code> and <code>trubar-config.yaml</code>,respectively, first in the current working directory and then in directory with message file, and then in source directory, as specified by <code>-s</code> argument (only for <code>collect</code> and <code>translate</code>).</p>
 <p>The available options are</p>
 <dl>
 <dt><code>smart-quotes</code> (default: true)</dt>
@@ -109,11 +110,11 @@ auto-import: &quot;from orangecanvas.utils.localization.si import plsi, plsi_sz&
 <dt><code>auto-import</code> (default: none)</dt>
 <dd>A string that, if specified, is prepended to the beginning of each source file with translation. The use is described in the section on plural forms.</dd>
 <dt><code>static-files</code> (default: none)</dt>
-<dd>A path of directory whose content is copied into translated sources. See the section on plural forms.</dd>
+<dd>A path of directory, or a list of paths. whose content is copied into translated sources. See the section on plural forms. This option is overridden by <code>static</code> argument in the command line, if given.</dd>
 <dt><code>exclude-pattern</code> (default: <code>"tests/test_"</code>)</dt>
 <dd>A regular expression for filtering out the files that should not be translated. The primary use for this is to exclude unit tests.</dd>
-<dt><code>encoding</code> (default: system locale)</dt>
-<dd>Characted encoding for .jaml files, such as <code>"utf-8"</code> or `"cp-1252".</dd>
+<dt><code>encoding</code> (default: <code>"utf-8"</code>)</dt>
+<dd>Characted encoding for .jaml files, such as <code>"utf-8"</code> or <code>"cp-1252"</code>.</dd>
 </dl>
               
             </div>
