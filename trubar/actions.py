@@ -130,6 +130,10 @@ class CountImportsFromFuture(cst.CSTVisitor):
     def __init__(self):
         super().__init__()
         self.count = 0
+        self.has_docstring = False
+
+    def visit_Module(self, node: cst.Module):
+        self.has_docstring = node.get_docstring()
 
     def visit_ImportFrom(self, node: cst.ImportFrom):
         if node.module is not None and node.module.value == "__future__":
@@ -143,12 +147,14 @@ class StringTranslatorBase(cst.CSTTransformer):
     def __init__(self,
                  module: cst.Module,
                  auto_import: Optional[cst.CSTNode] = None,
-                 auto_import_after: Optional[int] = None):
+                 n_future_imports: Optional[int] = 0,
+                 has_docstring: bool = False):
         super().__init__()
         self.module = module
         self.context_stack: Union[List[MsgDict], List[List[MsgDict]]] = []
         self.auto_import = auto_import
-        self.auto_import_after = auto_import_after
+        self.auto_import_after = n_future_imports or None
+        self.import_after_docstring = has_docstring and not n_future_imports
 
     @property
     def context(self):
@@ -177,15 +183,22 @@ class StringTranslatorBase(cst.CSTTransformer):
                                   ) -> cst.CSTNode:
         # Decrease the counter of __future__imports, and put auto imports
         # after the node when the counter reaches zero
+        if self.auto_import is None:
+            return updated_node
+
         if self.auto_import_after is not None:
             self.auto_import_after -= sum(
                 isinstance(child, cst.ImportFrom)
                 and child.module.value == "__future__"
                 for child in updated_node.body)
-        if self.auto_import_after == 0:
+
+        if self.import_after_docstring:
+            import_now = isinstance(updated_node, cst.SimpleStatementLine)
+        else:
+            import_now = self.auto_import_after == 0
+        if import_now:
             updated_node = cst.FlattenSentinel([updated_node,
                                                 *self.auto_import])
-            self.auto_import_after = None
             self.auto_import = None
         return updated_node
 
@@ -196,6 +209,7 @@ class StringTranslatorBase(cst.CSTTransformer):
         # before the first node
         updated_node = super().on_leave(original_node, updated_node)
         if self.auto_import \
+                and not self.import_after_docstring \
                 and self.auto_import_after is None \
                 and not isinstance(original_node, cst.Module) \
                 and isinstance(
@@ -252,8 +266,9 @@ class StringTranslator(StringTranslatorBase):
                  context: MsgDict,
                  module: cst.Module,
                  auto_import: Optional[cst.CSTNode] = None,
-                 auto_import_after: Optional[int] = None):
-        super().__init__(module, auto_import, auto_import_after)
+                 n_future_imports: Optional[int] = None,
+                 has_docstring: bool = False):
+        super().__init__(module, auto_import, n_future_imports, has_docstring)
         self.context_stack = [context]
 
     def push_context(self, node: NamespaceNode) -> None:
@@ -320,8 +335,9 @@ class StringTranslatorMultilingual(StringTranslatorBase):
                  message_tables: List[List[str]],
                  module: cst.Module,
                  auto_import: Optional[cst.CSTNode] = None,
-                 auto_import_after: Optional[int] = None):
-        super().__init__(module, auto_import, auto_import_after)
+                 n_future_imports: Optional[int] = None,
+                 has_docstring: bool = False):
+        super().__init__(module, auto_import, n_future_imports, has_docstring)
         self.context_stack = [contexts]
         self.message_tables = message_tables
 
@@ -574,9 +590,11 @@ def translate(translations: Dict[str, MsgDict],
         if auto_import is not None:
             counter = CountImportsFromFuture()
             tree.visit(counter)
-            auto_import_after = counter.count or None
+            n_future_imports = counter.count
+            has_docstring = counter.has_docstring
         else:
-            auto_import_after = None
+            n_future_imports = None
+            has_docstring = None
 
         # Replace with translations, produce new sources
         try:
@@ -587,11 +605,13 @@ def translate(translations: Dict[str, MsgDict],
             if config.languages is None:
                 translator = StringTranslator(
                     trans_name[0],
-                    tree, auto_import, auto_import_after)
+                    tree,
+                    auto_import, n_future_imports, has_docstring)
             else:
                 translator = StringTranslatorMultilingual(
                     trans_name, message_tables,
-                    tree, auto_import, auto_import_after)
+                    tree,
+                    auto_import, n_future_imports, has_docstring)
             tree = cst.metadata.MetadataWrapper(tree)
             translated = tree.visit(translator)
             trans_source = tree.module.code_for_node(translated)

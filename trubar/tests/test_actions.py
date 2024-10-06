@@ -287,11 +287,12 @@ print("samo {oklepaji}!")
                 "test here\nimport plural\nimport dual\n")
         )
 
+    def test_inport_after_docstring(self):
         module = CountImportsFromFutureTest.module_without_futures
         imports = "import plural\nimport dual"
         auto_import = cst.parse_module(imports).body
         tree = cst.parse_module(module)
-        translator = StringTranslator({}, tree, auto_import, 0)
+        translator = StringTranslator({}, tree, auto_import, 0, True)
         translated = tree.visit(translator)
         trans_source = tree.code_for_node(translated)
         self.assertEqual(

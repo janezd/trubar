@@ -1,8 +1,8 @@
+"""Doc string"""
 from something import anythin
 from anything import something
 _tr = Translator("Orange", "biolab.si", "Orange")
 del Translator
-"""Doc string"""
 
 import os
 
