@@ -454,20 +454,17 @@ class StringTranslatorMultilingual(StringTranslatorBase):
         prefix = "f" + node.prefix if need_f else node.prefix
 
         idx = len(self.message_tables[0])
-        str_no_prefix = \
-            f"{node.prefix.replace('f', '')}{node.quote}{original}{node.quote}"
-
         if "f" in prefix:
             quote = self._get_quote(node, orig_str, messages, prefix, need_f)
             for message, table in zip(messages, self.message_tables):
                 table.append(f"{prefix}{quote}{message}{quote}")
-            trans = f'_tr.e(_tr.c({idx}, {str_no_prefix}))'
+            trans = f'_tr.e(_tr.c({idx}, {orig_str}))'
         else:
             for message, table in zip(messages, self.message_tables):
                 table.append(message
                              .encode('latin-1', 'backslashreplace')
                              .decode('unicode-escape'))
-            trans = f"_tr.m[{idx}, {str_no_prefix}]"
+            trans = f"_tr.m[{idx}, {orig_str}]"
         return cst.parse_expression(trans)
 
 

@@ -366,7 +366,7 @@ class A:
         a = "baz"
 
         class B:
-           f = _tr.e(_tr.c(5, "baz{42}"))
+           f = _tr.e(_tr.c(5, f"baz{42}"))
 
 
 class C:
@@ -491,13 +491,13 @@ class C:
         # Original is an f-string, and so is one of translations, other is missing
         translation, tables = self._translate(
             "print(f'fo{o}')", [{"fo{o}": "do{n}t"}, {}])
-        self.assertEqual(translation, "print(_tr.e(_tr.c(0, 'fo{o}')))")
+        self.assertEqual(translation, "print(_tr.e(_tr.c(0, f'fo{o}')))")
         self.assertEqual(tables, [["f'fo{o}'"], ["f'do{n}t'"], ["f'fo{o}'"]])
 
         # Original is an f-string, translations are not
         translation, tables = self._translate(
             "print(f'fo{o}')", [{"fo{o}": "dont"}, {}])
-        self.assertEqual(translation, "print(_tr.e(_tr.c(0, 'fo{o}')))")
+        self.assertEqual(translation, "print(_tr.e(_tr.c(0, f'fo{o}')))")
         self.assertEqual(tables, [["f'fo{o}'"], ["f'dont'"], ["f'fo{o}'"]])
 
         # Original is not an f-string, one of translations is
@@ -516,15 +516,15 @@ class C:
         # Original has an f-string, and translations have different quotes
         translation, tables = self._translate(
             "print(f'foo')", [{"foo": "don't"}, {"foo": 'x"y'}])
-        self.assertEqual(translation, "print(_tr.e(_tr.c(0, 'foo')))")
+        self.assertEqual(translation, "print(_tr.e(_tr.c(0, f'foo')))")
         self.assertEqual(
             tables,
             [["f'''foo'''"], ["f'''don't'''"], ["f'''x\"y'''"]])
 
         # One language has an f-string, and translations have different quotes
         self._translate(
-          "print('foo')", [{"foo": "d{o}n't"}, {"foo": 'x"y'}])
-        self.assertEqual(translation, "print(_tr.e(_tr.c(0, 'foo')))")
+            "print('foo')", [{"foo": "d{o}n't"}, {"foo": 'x"y'}])
+        self.assertEqual(translation, "print(_tr.e(_tr.c(0, f'foo')))")
         self.assertEqual(
             tables,
             [["f'''foo'''"], ["f'''don't'''"], ["f'''x\"y'''"]])
@@ -538,7 +538,7 @@ class C:
             # Original has an f-string, but quotes are OK
             translation, tables = self._translate(
                 'print(f"foo")', [{"foo": "don't"}, {"foo": "x'y"}])
-            self.assertEqual(translation, 'print(_tr.e(_tr.c(0, "foo")))')
+            self.assertEqual(translation, 'print(_tr.e(_tr.c(0, f"foo")))')
             self.assertEqual(tables, [['f"foo"'], ['f"don\'t"'], ['f"x\'y"']])
 
     def test_syntax_error(self):

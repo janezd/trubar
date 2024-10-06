@@ -16,9 +16,9 @@ class A:
 
         t = os.listdir(_tr.e(_tr.c(3, "some/directory")))
         for x in t:
-            print(_tr.e(_tr.c(4, "File {x}")))
-            print(_tr.e(_tr.c(5, 'Not file {x + ".bak"}')))
-            if x.endswith(_tr.e(_tr.c(6, """{"nonsense"}"""))):
+            print(_tr.e(_tr.c(4, f"File {x}")))
+            print(_tr.e(_tr.c(5, f'Not file {x + ".bak"}')))
+            if x.endswith(_tr.e(_tr.c(6, f"""{"nonsense"}"""))):
                 return x
 
 if __name__ == "__main__":
