@@ -94,7 +94,7 @@ def f(x):
 
     def test_formatted_string(self):
         msgs = self.collect("""
-        
+
 def f(x):
     a = f"a string {x}"
     b = f'another string {2 + 2}'
@@ -120,10 +120,10 @@ class A:
             d = "foo"
             e = "bar"
         a = "baz"
-        
+
         class B:
            f = "baz"
-           
+
 class C:
     g = "crux" 
 """)
@@ -137,17 +137,17 @@ class C:
     def test_module_and_walk_and_collect(self):
         msgs, _ = collect(test_module_path, {}, "", quiet=True)
         self.assertEqual(
-             dict_from_msg_nodes(msgs),
+            dict_from_msg_nodes(msgs),
             {
-             'bar_module/foo_module/__init__.py': {
-                 "I've seen things you people wouldn't believe...": None},
-             'bar_module/__init__.py': {
-                 'Attack ships on fire off the shoulder of Orion...': None},
-             'baz_module/__init__.py': {'def `f`': {
-                 'I watched C-beams glitter in the dark near the Tannhäuser Gate.': None}},
-             '__init__.py': {'class `Future`': {
-                'All those moments will be lost in time, like tears in rain...': None,
-                'Time to die.': None}},
+                'bar_module/foo_module/__init__.py': {
+                    "I've seen things you people wouldn't believe...": None},
+                'bar_module/__init__.py': {
+                    'Attack ships on fire off the shoulder of Orion...': None},
+                'baz_module/__init__.py': {'def `f`': {
+                    'I watched C-beams glitter in the dark near the Tannhäuser Gate.': None}},
+                '__init__.py': {'class `Future`': {
+                    'All those moments will be lost in time, like tears in rain...': None,
+                    'Time to die.': None}},
             }
         )
 
@@ -166,7 +166,7 @@ def g(x):
         self.assertEqual(
             msgs,
             {'def `f`': {'not a docstring': None},
-                  'def `g`': {'bar': None}})
+             'def `g`': {'bar': None}})
 
     def test_no_strings_within_interpolation(self):
         msgs = self.collect("""a = f'x = {len("foo")} {"bar"}'""")
@@ -348,11 +348,13 @@ class C:
         trans_foo = {'class `A`': {'def `b`': {'def `c`': {'foo': 'sea food',
                                                            'bar': None},
                                                'baz': True,
-                                               'class `B`': {'baz{42}': False}}},
+                                               'class `B`': {
+                                                   'baz{42}': False}}},
                      'class `C`': {'crux': ""}}
 
         trans_fee = {'class `A`': {'def `b`': {'def `c`': {'bar': "no-bar"},
-                                               'class `B`': {'baz{42}': "bar(1)"}}}}
+                                               'class `B`': {
+                                                   'baz{42}': "bar(1)"}}}}
 
         trans_source, message_tables = self._translate(
             module, [trans_foo, trans_fee], True)
@@ -478,7 +480,8 @@ class C:
             node.quote = "'"
             self.assertRaises(
                 TranslationError,
-                m, node, "'a str'''ing'", ["a str'''ing", "one", "tw\"\"\"o{x}"],
+                m, node, "'a str'''ing'",
+                ["a str'''ing", "one", "tw\"\"\"o{x}"],
                 "", ["English"])
 
     def test_auto_prefix(self):
@@ -747,15 +750,15 @@ class ActionsTest(unittest.TestCase):
              "d": False,
              "e": True,
              "class `f`": {"g": "h",
-                 "i": False,
-                 "def `j`": {"a": None},
-                 "k": True},
+                           "i": False,
+                           "def `j`": {"a": None},
+                           "k": True},
              "def `k`": {"p": None},
              "m": None,
              "class `p`": {"q": "r"},
              "s": None,
              "def `t`": {"u": "v"}
-            }
+             }
         )
         removed = dict_from_msg_nodes(removed)
         self.assertEqual(set(removed), {"class `f`", "def `m`"})
@@ -777,16 +780,16 @@ def `m` not in target structure
             "c": False,
             "d": True,
             "e": None,
-            "f": { "g": "h", "i": False},
-            "j": { "k": False, "l": {"m": False, "n": False}}
+            "f": {"g": "h", "i": False},
+            "j": {"k": False, "l": {"m": False, "n": False}}
         }
         self.assertEqual(
             yamlized(template)(messages),
-           {"a": None,
-            "d": None,
-            "e": None,
-            "f": { "g": None}
-        }
+            {"a": None,
+             "d": None,
+             "e": None,
+             "f": {"g": None}
+             }
         )
         self.assertEqual(yamlized(template)(messages, "f"), {"f": {"g": None}})
         self.assertEqual(yamlized(template)(messages, "g"), {})

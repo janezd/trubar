@@ -14,6 +14,7 @@ class LanguageDef:
     international_name: str
     is_original: bool
 
+
 @dataclasses.dataclass
 class Configuration:
     base_dir: Optional[str] = None
