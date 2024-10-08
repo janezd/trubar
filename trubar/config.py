@@ -1,7 +1,6 @@
 import sys
 import os
 import re
-import locale
 import dataclasses
 from typing import Optional
 
@@ -13,6 +12,7 @@ class LanguageDef:
     name: str
     international_name: str
     is_original: bool
+
 
 @dataclasses.dataclass
 class Configuration:

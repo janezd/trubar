@@ -1,3 +1,17 @@
+## 0.3.1  - 0.3.4
+
+#### Bug fixes
+
+- Put auto imports after the docstring to avoid breaking doctests.
+- In multilingual mode, ensure that all variables from the original f-strings appear in the closure.
+- Fixed glitches in writing of translation files.
+- Set the default encoding to utf-8 rather than locale.
+
+## 0.3 - 2024-06-13
+
+- Support for switching between different languages (provisional, may change)
+- Drop support for Python 3.8.
+
 ## 0.2.5 - 2024-01-17
 
 #### Bug fixes
