@@ -40,6 +40,10 @@
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
               <ul class="current">
                 <li class="toctree-l1 current"><a class="reference internal current" href="#">Getting Started</a>
     <ul class="current">
@@ -58,6 +62,10 @@
               </ul>
               <ul>
                 <li class="toctree-l1"><a class="reference internal" href="../scenarios/">Common Scenarios</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../multilingual/">Multilingual Use</a>
                 </li>
               </ul>
               <ul>
@@ -157,7 +165,7 @@ farm/pigs.py:
         def `walk`:
             {self.n} little pigs went for a walk: null
 </code></pre>
-<p>See the section about <a href="../message-files">Message files</a> for details about the file format.</p>
+<p>See the section about <a href="../message-files/">Message files</a> for details about the file format.</p>
 <h3 id="translating-messages">Translating messages</h3>
 <p>The next step is to edit the .jaml file: <code>null</code>'s need to be replaced by translations or marked in another way. Here's a Slovenian translation.</p>
 <pre><code>__main__.py:
@@ -175,15 +183,16 @@ farm/pigs.py:
 </code></pre>
 <p>We translated <code>__main__</code> as <code>false</code>, which indicates that this string must not be translated. Other options are explained <a href="../message-files/#translations">later</a>.</p>
 <h3 id="applying-translations">Applying translations</h3>
-<p>In most scenarios, we first need to prepare a copy of the entire project, because Trubar will only copy the files within its scan range. Suppose that <code>../project_copy</code> contains such a copy.</p>
+<p>In the simplest scenario, we want to produce new sources in which the original strings are replaced by translations. We first prepare a copy of the entire project because Trubar will only copy the files within the scanned directories. Suppose that <code>../project_copy</code> contains such a copy.</p>
 <p>Now run <a href="../command-line/#translate">translate</a>.</p>
 <pre><code>trubar translate -s code/sample -d ../project_copy/code/sample sample.jaml
 </code></pre>
-<p>That's it.</p>
+<p>In most cases, we want to also add a <a href="../configuration/">configuration file</a>.</p>
               
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href=".." class="btn btn-neutral float-left" title="Home"><span class="icon icon-circle-arrow-left"></span> Previous</a>
         <a href="../message-files/" class="btn btn-neutral float-right" title="Message Files">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
@@ -206,6 +215,8 @@ farm/pigs.py:
   <div class="rst-versions" role="note" aria-label="Versions">
   <span class="rst-current-version" data-toggle="rst-current-version">
     
+    
+      <span><a href=".." style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
       <span><a href="../message-files/" style="color: #fcfcfc">Next &raquo;</a></span>

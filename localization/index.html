@@ -41,6 +41,10 @@
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
                 <li class="toctree-l1"><a class="reference internal" href="../getting-started/">Getting Started</a>
                 </li>
               </ul>
@@ -50,6 +54,10 @@
               </ul>
               <ul>
                 <li class="toctree-l1"><a class="reference internal" href="../scenarios/">Common Scenarios</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../multilingual/">Multilingual Use</a>
                 </li>
               </ul>
               <ul>
@@ -117,7 +125,7 @@
 <p>If the original string is not an f-string but the translation contains braces and prefixing this string with f- makes it a syntactically valid f-string, Trubar will add an f-prefix unless:</p>
 <ul>
 <li>the original string already included braces (so this may be a pattern for <code>str.format</code>)</li>
-<li>or this behaviour is explicitly disabled in <a href="../configuration">configuration</a> by setting <code>auto-prefix: false</code>.</li>
+<li>or this behaviour is explicitly disabled in <a href="../configuration/">configuration</a> by setting <code>auto-prefix: false</code>.</li>
 </ul>
 <h3 id="plural-forms">Plural forms</h3>
 <p>Trubar does not itself offer any specific functionality for plural forms. There is however a neat way of doing it, in particular if the original source is written in a translation-friendly way.</p>
@@ -186,8 +194,8 @@
 <h4 id="importing-localization-functions">Importing localization functions</h4>
 <p>The above examples requires importing the localization functions, such as <code>plsi</code> and <code>plsi_sz</code>.</p>
 <p>First, the translated sources must include the necessary module, which does not exist in the original source. To this end, we need to prepare a directory with static files. In our case, we can have a directory named, for instance <code>si-local</code>, containing <code>si-local/utils/localization/__init__.py</code>. When translating, we instruct Trubar to copy this into translated source tree by adding an option <code>--static si-local</code> to the <a href="../command-line/#translate"><code>translate</code> action</a>.</p>
-<p>Second, all translated source files must include the necessary import. We do this using a directive in <a href="../configuration">configuration file</a>:</p>
-<pre><code>auto-import: &quot;from orangecanvas.utils.localization.si import plsi, plsi_sz&quot;
+<p>Second, all translated source files must include the necessary import. We do this using a directive in <a href="../configuration/">configuration file</a>:</p>
+<pre><code>auto-import: &quot;from orangecanvas.localization.si import plsi, plsi_sz&quot;
 </code></pre>
 <p>Trubar will prepend this line to the beginning of all files with any translations.</p>
 <h4 id="other-forms-of-interpolation">Other forms of interpolation</h4>

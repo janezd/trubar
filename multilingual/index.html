@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Multilingual Use - Trubar</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../extra.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Multilingual Use";
+        var mkdocs_page_input_path = "multilingual.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Trubar
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../getting-started/">Getting Started</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../message-files/">Message Files</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../scenarios/">Common Scenarios</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Multilingual Use</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#a-slightly-simplified-example">A slightly simplified example</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#the-actual-code">The actual code</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../command-line/">Command Line</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../configuration/">Configuration</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../localization/">Localization Issues</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../questions/">Questions</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Trubar</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Multilingual Use</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="setup-for-multilingual-use">Setup for multilingual use</h2>
+<p>Implementing a multilingual setup requires understanding of the code produced by Trubar.</p>
+<p>In single-language setup, strings are replaced by translated strings and f-strings pose no problem. Multilingual setup uses string tables for different languages. F-strings cannot be stored in such tables because they are syntactic elements and not Python objects. Instead, Trubar stores a string that contains an f-string. When the string needs to be used, it compiles and evaluates it in the local context.</p>
+<h3 id="a-slightly-simplified-example">A slightly simplified example</h3>
+<p>The following example is based on the Orange code base. A similar setup would be used in other projects.</p>
+<p>We first need to understand how Trubar modifies the sources in multilingual mode.</p>
+<ul>
+<li>A string <code>"Data Table"</code> is replaced by <code>_tr.m[1651]</code>. Neither the original string nor any of its translations are f-strings, so the string is replaced by lookup; the element at index 1651 in the English message table is <code>"Data Table"</code> and in the Slovenian table it is <code>"Tabela s podatki"</code>. We will tell more about where the <code>_tr</code> comes from and what it contains later.</li>
+<li>A string <code>f" ({perc:.1f} % missing data)"))</code> is replaced by <code>_tr.e(_tr.c(1717)</code>. The string at index 1717 in the English message table is <code>"f\" ({perc:.1f} % missing data)\""</code> and the Slovenian translation is <code>"f\" ({perc:.1f} % manjkajočih podatkov)\""</code>. Note that this is not a string but a string that contains and f-string.</li>
+</ul>
+<p>For this to work, the <code>_tr</code> must be an object with the following attributes:</p>
+<ul>
+<li><code>m</code> is a list of strings, where the index corresponds to the index in the message table.</li>
+<li><code>e</code> is a function that evaluates a string; in short, <code>e</code> is <code>eval</code>.</li>
+<li><code>c</code> is a function that compiles a string at the given index; in short, <code>c</code> is <code>compile</code>.</li>
+</ul>
+<p>Trubar provides neither <code>_tr</code> nor its methods, and it doesn't import it because this is application specific. Orange's configuration for Trubar has an auto-import directive that inserts the following lines into each source file:</p>
+<pre><code class="language-python">  from orangecanvas.localization import Translator  # pylint: disable=wrong-import-order
+  _tr = Translator()
+  del Translator
+</code></pre>
+<p>Other applications would import a similar class from another location and use different arguments for its constructor. The end result must be an object named <code>_tr</code> with the requires methods.</p>
+<p>The <code>Translator</code> class looks roughly like this:</p>
+<pre><code class="language-python">import json
+
+class Translator:
+    def __init__(self):
+        path = &quot;i18n/slovenian.jaml&quot;  # Replace this with the actual path
+        with open(path) as handle:
+            # Note that the actual code is somewhat more complex; see below
+            self.m = json.load(handle)
+
+    e = eval
+
+    def c(self, idx, *_):
+        return compile(self.m[idx], '&lt;string&gt;', 'eval')
+</code></pre>
+<p>In Orange, the <code>Translator</code>'s constructor requires Qt-related arguments, so the code from auto-import is actually</p>
+<pre><code class="language-python">_tr = Translator(&quot;Orange&quot;, &quot;biolab.si&quot;, &quot;Orange&quot;)
+</code></pre>
+<p>and the constructor uses these arguments to retrieve the current language from the settings and locates the appropriate file and reads it into <code>self.m</code>.</p>
+<h3 id="the-actual-code">The actual code</h3>
+<p>The above description is simplified for clarity. Trubar doesn't replace <code>"Data Table"</code> by <code>tr.m[1651]</code> but by <code>tr.m[1651, "Data Table"]</code>; similarly for f-strings. The second index, <code>"Data Table"</code>, is not used and is there only as a comment for any developers checking the translated sources. Translator doesn't load the message table with</p>
+<pre><code class="language-python">self.m = json.load(handle)
+</code></pre>
+<p>but wraps the list into a class <code>_list</code>:</p>
+<pre><code class="language-python">self.m = json.load(handle)
+</code></pre>
+<p>where <code>_list</code> is</p>
+<pre><code class="language-python">class _list(list):
+    # Accept extra argument to allow for the original string
+    def __getitem__(self, item):
+        if isinstance(item, tuple):
+            item = item[0]
+        return super().__getitem__(item)
+</code></pre>
+<p>Note again that Trubar doesn't provide this code, but your application would probably use similar code. Find the complete example at <a href="https://github.com/biolab/orange-canvas-core/blob/master/orangecanvas/localization/__init__.py">Orange Canvas Core's Github</a>.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../scenarios/" class="btn btn-neutral float-left" title="Common Scenarios"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../command-line/" class="btn btn-neutral float-right" title="Command Line">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../scenarios/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../command-line/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

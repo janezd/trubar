@@ -41,6 +41,10 @@
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
                 <li class="toctree-l1"><a class="reference internal" href="../getting-started/">Getting Started</a>
                 </li>
               </ul>
@@ -53,12 +57,20 @@
                 </li>
               </ul>
               <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../multilingual/">Multilingual Use</a>
+                </li>
+              </ul>
+              <ul>
                 <li class="toctree-l1"><a class="reference internal" href="../command-line/">Command Line</a>
                 </li>
               </ul>
               <ul class="current">
                 <li class="toctree-l1 current"><a class="reference internal current" href="#">Configuration</a>
     <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#multilingual-setup">Multilingual setup</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#example">Example</a>
+    </li>
     </ul>
                 </li>
               </ul>
@@ -94,10 +106,11 @@
             <div class="section" itemprop="articleBody">
               
                 <h2 id="configuration-file">Configuration file</h2>
+<p>Trubar can be configured to replace messages with translations (single-language setup) or with lookups into tables of messages (multilingual setup).</p>
 <p>Configuration file is a yaml file with options-value pairs, for instance</p>
 <pre><code>smart-quotes: false
 auto-prefix: true
-auto-import: &quot;from orangecanvas.utils.localization.si import plsi, plsi_sz&quot;
+auto-import: &quot;from orangecanvas.localization.si import plsi, plsi_sz&quot;
 </code></pre>
 <p>If configuration is not specified, Truber looks for <code>.trubarconfig.yaml</code> and <code>trubar-config.yaml</code>,respectively, first in the current working directory and then in directory with message file, and then in source directory, as specified by <code>-s</code> argument (only for <code>collect</code> and <code>translate</code>).</p>
 <p>The available options are</p>
@@ -115,6 +128,35 @@ auto-import: &quot;from orangecanvas.utils.localization.si import plsi, plsi_sz&
 <dt><code>encoding</code> (default: <code>"utf-8"</code>)</dt>
 <dd>Characted encoding for .jaml files, such as <code>"utf-8"</code> or <code>"cp-1252"</code>.</dd>
 </dl>
+<h3 id="multilingual-setup">Multilingual setup</h3>
+<p>In a multilingual setup, the configuration file includes a section with languages. Each language is specified by a key, which is the language code, and a dictionary with options. Options include a name of the language, an international name, and any language-specific auto-import directives. For instance</p>
+<dl>
+<dt><code>name</code> (required)</dt>
+<dd>The native name of the language. Put into the table of messages at index 0.</dd>
+<dt><code>international-name</code> (required)</dt>
+<dd>The international name of the language. Put into the table of messages at index 1.</dd>
+<dt><code>auto-import</code> (default: none)</dt>
+<dd>Same as <code>auto-import</code> in single-language setup, but for the specific language. This text (if any) is added to other auto imports (if any).</dd>
+<dt><code>original</code> (default: false)</dt>
+<dd>If set to <code>true</code>, the language is considered the original language of the source code.</dd>
+</dl>
+<h3 id="example">Example</h3>
+<p>This is a multilingual setup for two languages that is used in Orange at the time of writing this document.</p>
+<pre><code class="language-yaml">languages:
+  en:
+    name: English
+    original: true
+  si:
+    name: Slovenščina
+    international-name: Slovenian
+    auto-import: from orangecanvas.localization.si import plsi, plsi_sz, z_besedo  # pylint: disable=wrong-import-order
+auto-import: |2
+  from orangecanvas.localization import Translator  # pylint: disable=wrong-import-order
+  _tr = Translator(&quot;Orange&quot;, &quot;biolab.si&quot;, &quot;Orange&quot;)
+  del Translator
+encoding: &quot;utf-8&quot;
+</code></pre>
+<p>For more on auto-imports, see the section on <a href="../multilingual/">multilingual use</a>.</p>
               
             </div>
           </div><footer>
