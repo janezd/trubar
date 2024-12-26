@@ -10,7 +10,7 @@ Trubar is invoked by
 : Prints help and exits.
 
 `--conf <conf-file>`
-: Specifies the [configuration file](../configuration). If not given, Trubar searches for `.trubarconfig.yaml` and `trubar-config.yaml` in current directory, directory with messages, and in source directory (for `collect` and `translate`).
+: Specifies the [configuration file](configuration.md). If not given, Trubar searches for `.trubarconfig.yaml` and `trubar-config.yaml` in current directory, directory with messages, and in source directory (for `collect` and `translate`).
 
 Action must be one of the following:
 
@@ -29,7 +29,7 @@ trubar collect [-h] [-p pattern] [-r removed-translations] [-q] [-n]
                -s source-dir messages
 ```
 
-Collects strings from the specified source tree, skipping files that don't end with `.py` or whose path includes `tests/test_`. (The latter can be changed in [configuration file](../configuration).) Strings with no effect are ignored; this is aimed at docstrings, but will also skip any other unused strings.
+Collects strings from the specified source tree, skipping files that don't end with `.py` or whose path includes `tests/test_`. (The latter can be changed in [configuration file](configuration.md).) Strings with no effect are ignored; this is aimed at docstrings, but will also skip any other unused strings.
 
 If the output file already exists, it is updated: new messages are merged into it, existing translations are kept, and obsolete messages are removed. The latter can be recorded using the option `-r`.
 
@@ -81,7 +81,7 @@ Translates files with extension .py and writes them to destination directories, 
 : A pattern that the file path must include to be considered.
 
 `--static <static-files-path>`
-: Copies the file from the given path into destination tree; essentially `cp -R <static-files-path> <dest-path>/<static-file-path>`. This is used, for instance, for [adding modules with target-language related features](../localization/#plural-forms), like those for plural forms. This option can be given multiple times. If given, this argument overrides `static-files` from config file.
+: Copies the file from the given path into destination tree; essentially `cp -R <static-files-path> <dest-path>/<static-file-path>`. This is used, for instance, for [adding modules with target-language related features](localization.md/#plural-forms), like those for plural forms. This option can be given multiple times. If given, this argument overrides `static-files` from config file.
 
 `-q`, `--quiet`
 : Supresses output messages, except for critical. Overrides option `-v`.

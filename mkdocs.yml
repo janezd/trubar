@@ -5,9 +5,11 @@ markdown_extensions:
     - markdown.extensions.def_list
 
 nav:
+  - Home: index.md
   - Getting Started: getting-started.md
   - Message Files: message-files.md
   - Common Scenarios: scenarios.md
+  - Multilingual Use: multilingual.md
   - Command Line: command-line.md
   - Configuration: configuration.md
   - Localization Issues: localization.md

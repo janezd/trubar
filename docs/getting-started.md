@@ -52,7 +52,7 @@ Note that, unlike in the gettext framework, messages are not "marked" for transl
 
 ### Collecting messages
 
-To collect all strings in the project, use [collect](../command-line/#collect).
+To collect all strings in the project, use [collect](command-line.md/#collect).
 
 ```
 trubar collect -s code/sample sample.jaml
@@ -76,7 +76,7 @@ farm/pigs.py:
             {self.n} little pigs went for a walk: null
 ```
 
-See the section about [Message files](../message-files) for details about the file format.
+See the section about [Message files](message-files.md) for details about the file format.
 
 ### Translating messages
 
@@ -97,16 +97,16 @@ farm/pigs.py:
             {self.n} little pigs went for a walk: {self.n} prašičkov se je šlo sprehajat.
 ```
 
-We translated `__main__` as `false`, which indicates that this string must not be translated. Other options are explained [later](../message-files/#translations).
+We translated `__main__` as `false`, which indicates that this string must not be translated. Other options are explained [later](message-files.md#translations).
 
 ### Applying translations
 
-In most scenarios, we first need to prepare a copy of the entire project, because Trubar will only copy the files within its scan range. Suppose that `../project_copy` contains such a copy.
+In the simplest scenario, we want to produce new sources in which the original strings are replaced by translations. We first prepare a copy of the entire project because Trubar will only copy the files within the scanned directories. Suppose that `../project_copy` contains such a copy.
 
-Now run [translate](../command-line/#translate).
+Now run [translate](command-line.md#translate).
 
 ```
 trubar translate -s code/sample -d ../project_copy/code/sample sample.jaml
 ```
 
-That's it.
+In most cases, we want to also add a [configuration file](configuration.md).

@@ -100,7 +100,7 @@ class ConfigTest(TestBase):
                 si:
                     name: Slovenščina
                     international-name: Slovenian
-                    auto-import: from orangecanvas.utils.localization.si import plsi
+                    auto-import: from orangecanvas.localization.si import plsi
                 en:
                     name: English
                     original: true
@@ -108,7 +108,7 @@ class ConfigTest(TestBase):
                     international-name: Ukrainian
                     auto-import: import grain
                     name: Українська
-            auto-import: from orangecanvas.utils.localization import pl
+            auto-import: from orangecanvas.localization import pl
 """)
         config = Configuration()
         with patch("os.path.exists",
@@ -131,9 +131,9 @@ class ConfigTest(TestBase):
             # Auto-imports are correct
             self.assertEqual(
                 set(config.auto_import),
-                {'from orangecanvas.utils.localization.si import plsi',
+                {'from orangecanvas.localization.si import plsi',
                  'import grain',
-                 'from orangecanvas.utils.localization import pl'})
+                 'from orangecanvas.localization import pl'})
             # Base dir is set correctly
             base_dir, _ = os.path.split(self.fn)
             self.assertEqual(config.base_dir, base_dir)

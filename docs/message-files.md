@@ -11,7 +11,7 @@ The first-level keys are file names, with their paths relative to the root passe
 Lower levels have keys that
 
 - start with `def` or `class`, and are followed by a subtree that starts in the next line,
-- or represents a potentially translatable string, followed by the translation in that same line (except when using [blocks](#blocks)).
+- or represents a potentially translatable string, followed by the translation in that same line.
 
     There is no indication about whether a string is an f-string or not, neither does it show what kind of quotes are used in the source, because none of this matters.
 
@@ -26,7 +26,7 @@ Translator can treat a string in approximately three ways.
 - Mark it with `true`, if the strings that could be translated, but doesn't need it for this particular language or culture. A common example would be symbols like `"©️"`.
 - Leave it `null` until (s)he figures out what to do with it.
 
-The difference between `true` and `false` is important only when using this translation to [prepare templates](../scenarios/#preparing-templates) for translations into other languages.
+The difference between `true` and `false` is important only when using this translation to [prepare templates](scenarios.md#preparing-templates) for translations into other languages.
 
 ### Comments
 
