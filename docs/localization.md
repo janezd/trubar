@@ -11,7 +11,7 @@ If the original source contains an f-string, Trubar will keep the f-prefix in tr
 If the original string is not an f-string but the translation contains braces and prefixing this string with f- makes it a syntactically valid f-string, Trubar will add an f-prefix unless:
 
 - the original string already included braces (so this may be a pattern for `str.format`)
-- or this behaviour is explicitly disabled in [configuration](../configuration) by setting `auto-prefix: false`.
+- or this behaviour is explicitly disabled in [configuration](configuration.md) by setting `auto-prefix: false`.
 
 
 ### Plural forms
@@ -117,12 +117,12 @@ The same mechanism can be used for other language quirks.
 
 The above examples requires importing the localization functions, such as `plsi` and `plsi_sz`.
 
-First, the translated sources must include the necessary module, which does not exist in the original source. To this end, we need to prepare a directory with static files. In our case, we can have a directory named, for instance `si-local`, containing `si-local/utils/localization/__init__.py`. When translating, we instruct Trubar to copy this into translated source tree by adding an option `--static si-local` to the [`translate` action](../command-line/#translate).
+First, the translated sources must include the necessary module, which does not exist in the original source. To this end, we need to prepare a directory with static files. In our case, we can have a directory named, for instance `si-local`, containing `si-local/utils/localization/__init__.py`. When translating, we instruct Trubar to copy this into translated source tree by adding an option `--static si-local` to the [`translate` action](command-line.md#translate).
 
-Second, all translated source files must include the necessary import. We do this using a directive in [configuration file](../configuration):
+Second, all translated source files must include the necessary import. We do this using a directive in [configuration file](configuration.md):
 
 ```
-auto-import: "from orangecanvas.utils.localization.si import plsi, plsi_sz"
+auto-import: "from orangecanvas.localization.si import plsi, plsi_sz"
 ```
 
 Trubar will prepend this line to the beginning of all files with any translations.
