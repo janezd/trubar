@@ -120,7 +120,7 @@ auto-import: &quot;from orangecanvas.localization.si import plsi, plsi_sz&quot;
 <dt><code>auto-prefix</code> (default: true)</dt>
 <dd>If set, Trubar will turn strings into f-strings if translation contains braces and adding an f- prefix makes it a syntactically valid string, <em>unless</em> the original string already included braces, in which case this may had been a pattern for <code>str.format</code>.</dd>
 <dt><code>auto-import</code> (default: none)</dt>
-<dd>A string that, if specified, is prepended to the beginning of each source file with translation. The use is described in the section on plural forms.</dd>
+<dd>A string that, if specified, is prepended to the beginning of each source file with translation. The auto-import code is inserted at the top of the file, after any doc strings and imports from the future. The use is described in the section on plural forms.</dd>
 <dt><code>static-files</code> (default: none)</dt>
 <dd>A path of directory, or a list of paths. whose content is copied into translated sources. See the section on plural forms. This option is overridden by <code>static</code> argument in the command line, if given.</dd>
 <dt><code>exclude-pattern</code> (default: <code>"tests/test_"</code>)</dt>

@@ -147,10 +147,11 @@ class Translator:
 </code></pre>
 <p>and the constructor uses these arguments to retrieve the current language from the settings and locates the appropriate file and reads it into <code>self.m</code>.</p>
 <h3 id="the-actual-code">The actual code</h3>
-<p>The above description is simplified for clarity. Trubar doesn't replace <code>"Data Table"</code> by <code>tr.m[1651]</code> but by <code>tr.m[1651, "Data Table"]</code>; similarly for f-strings. The second index, <code>"Data Table"</code>, is not used and is there only as a comment for any developers checking the translated sources. Translator doesn't load the message table with</p>
+<p>The above description is simplified for clarity. Trubar doesn't replace <code>"Data Table"</code> by <code>tr.m[1651]</code> but by <code>tr.m[1651, "Data Table"]</code>; similarly for f-strings.</p>
+<p>The message table is not stored read into a list</p>
 <pre><code class="language-python">self.m = json.load(handle)
 </code></pre>
-<p>but wraps the list into a class <code>_list</code>:</p>
+<p>but wrapped into a class <code>_list</code> whose <code>__getitem__</code> method accepts, but drops, an extra index:</p>
 <pre><code class="language-python">self.m = json.load(handle)
 </code></pre>
 <p>where <code>_list</code> is</p>
@@ -162,6 +163,23 @@ class Translator:
         return super().__getitem__(item)
 </code></pre>
 <p>Note again that Trubar doesn't provide this code, but your application would probably use similar code. Find the complete example at <a href="https://github.com/biolab/orange-canvas-core/blob/master/orangecanvas/localization/__init__.py">Orange Canvas Core's Github</a>.</p>
+<p><strong>Technical note:</strong> the second index, the original string, <code>"Data Table"</code>, is not used to provide defaults; these are always available in message tables. The original string serves two other purposes.</p>
+<ul>
+<li>It provides the original for developers that might inspect the translated code.</li>
+<li>
+<p>In case of f-strings, it ensures that the names used in the f-string are stored in the function closure and accessible to <code>compile</code>. The function</p>
+<p><code>def f():
+    x = 42
+    def g():
+        return f"{x}"</code></p>
+<p>will compile to</p>
+<p><code>def f():
+    x = 42
+    def g():
+        return _tr.e(tr._c(1234, f"{x}"))</code></p>
+<p>where <code>1234</code> is the index of the f-string in the message table. Without the original f-string, the name <code>x</code> would not be available to <code>_tr.c</code>.</p>
+</li>
+</ul>
               
             </div>
           </div><footer>
