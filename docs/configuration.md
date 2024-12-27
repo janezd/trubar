@@ -21,7 +21,7 @@ The available options are
 : If set, Trubar will turn strings into f-strings if translation contains braces and adding an f- prefix makes it a syntactically valid string, *unless* the original string already included braces, in which case this may had been a pattern for `str.format`.
 
 `auto-import` (default: none)
-: A string that, if specified, is prepended to the beginning of each source file with translation. The use is described in the section on plural forms.
+: A string that, if specified, is prepended to the beginning of each source file with translation. The auto-import code is inserted at the top of the file, after any doc strings and imports from the future. The use is described in the section on plural forms.
 
 `static-files` (default: none)
 : A path of directory, or a list of paths. whose content is copied into translated sources. See the section on plural forms. This option is overridden by `static` argument in the command line, if given.

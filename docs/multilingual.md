@@ -56,13 +56,15 @@ and the constructor uses these arguments to retrieve the current language from t
 
 ### The actual code
 
-The above description is simplified for clarity. Trubar doesn't replace `"Data Table"` by `tr.m[1651]` but by `tr.m[1651, "Data Table"]`; similarly for f-strings. The second index, `"Data Table"`, is not used and is there only as a comment for any developers checking the translated sources. Translator doesn't load the message table with
+The above description is simplified for clarity. Trubar doesn't replace `"Data Table"` by `tr.m[1651]` but by `tr.m[1651, "Data Table"]`; similarly for f-strings.
+
+The message table is not stored read into a list
 
 ```python
 self.m = json.load(handle)
 ```
 
-but wraps the list into a class `_list`:
+but wrapped into a class `_list` whose `__getitem__` method accepts, but drops, an extra index:
 
 ```python
 self.m = json.load(handle)
@@ -80,3 +82,26 @@ class _list(list):
 ```
 
 Note again that Trubar doesn't provide this code, but your application would probably use similar code. Find the complete example at [Orange Canvas Core's Github](https://github.com/biolab/orange-canvas-core/blob/master/orangecanvas/localization/__init__.py).
+
+**Technical note:** the second index, the original string, `"Data Table"`, is not used to provide defaults; these are always available in message tables. The original string serves two other purposes.
+
+- It provides the original for developers that might inspect the translated code.
+- In case of f-strings, it ensures that the names used in the f-string are stored in the function closure and accessible to `compile`. The function
+
+    ```
+    def f():
+        x = 42
+        def g():
+            return f"{x}"
+    ```
+
+    will compile to
+
+    ```
+    def f():
+        x = 42
+        def g():
+            return _tr.e(tr._c(1234, f"{x}"))
+    ```
+
+    where `1234` is the index of the f-string in the message table. Without the original f-string, the name `x` would not be available to `_tr.c`.
