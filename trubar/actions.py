@@ -1,15 +1,15 @@
+import ast
 import dataclasses
 import os
 import re
 import shutil
 import json
-from itertools import islice
 from typing import Union, List, Optional, NamedTuple, Tuple, Dict
 
 import libcst as cst
 from libcst.metadata import ParentNodeProvider
 
-from trubar.utils import walk_files, make_list
+from trubar.utils import walk_files
 from trubar.messages import MsgNode, MsgDict
 from trubar.config import config
 
@@ -350,50 +350,74 @@ class StringTranslatorMultilingual(StringTranslatorBase):
     @classmethod
     def _f_string_languages(cls,
                             node: SomeString,
-                            messages: List[str]) -> List[str]:
-        # Don't prefix if auto_prefix is off, or we already have it,
-        # or the original already has braces (although without the f-prefix)
-        if not config.auto_prefix \
-                or "f" in node.prefix \
-                or re_braced.search(messages[0]):
-            return []
+                            messages: List[str]) -> set[int]:
+        """
+        For the given messages, return a set of indices of languages that
+        requires an f-prefix. This includes the original language, 0.
 
-        quotes = (node.quote, ) + (all_quotes if config.smart_quotes else ())
+        This is determined by checking that the string includes braces and,
+        if so, that it compiles to something that includes an f-string after
+        trying all quote types.
 
-        add_f = []
-        for translation, langdef in zip(messages[1:],
-                                        islice(config.languages.values(), 1, None)):
+        Empty set if
+         - the original string is not an f-stirng and auto_prefix is disabled
+         - the original string already has braces but no f-prefix.
+        """
+        add_f = set()
+        prefix = node.prefix
+        if "f" not in prefix:
+            if not config.auto_prefix or re_braced.search(messages[0]):
+                return add_f
+            prefix += "f"
+        else:
+            add_f.add(0)
+
+        for i, translation in enumerate(messages[1:], start=1):
             if not re_braced.search(translation):
                 continue
-            for quote in quotes:
+            for quote in all_quotes:
                 try:
                     new_node = cst.parse_expression(
-                        f'f{node.prefix}{quote}{translation}{quote}')
+                        f'{prefix}{quote}{translation}{quote}')
                     assert isinstance(new_node, cst.FormattedString)
                 except cst.ParserSyntaxError:
                     continue
                 if any(isinstance(part, cst.FormattedStringExpression)
                        for part in new_node.parts):
-                    add_f.append(f"{langdef.international_name} ({translation})")
+                    add_f.add(i)
                     break
         return add_f
 
-    @staticmethod
-    def _get_quote(node: SomeString,
+    @classmethod
+    def _get_quote(cls,
+                   node: SomeString,
                    orig_str: str,
-                   messages: List[str],
-                   prefix: str, need_f: List[str]) -> str:
-        quotes = (node.quote, ) + (all_quotes if config.smart_quotes else ())
+                   translation: str,
+                   language_index: int,
+                   prefix: str) -> str:
+        """
+        Return a suitable quote for the given translation.
 
-        for fquote in quotes:
-            for translation in messages:
-                try:
-                    compile(f"{prefix}{fquote}{translation}{fquote}",
-                            '<string>', 'eval')
-                except SyntaxError:
-                    break
+        The method tries all quote types (starting with the original) and
+        returns the first one that compiles. If none compiles, raises a
+        TranslationError.
+
+        The method is used for f-strings.
+        """
+        quotes = (node.quote, ) + (all_quotes if config.smart_quotes else ())
+        for quote in quotes:
+            try:
+                compiled = ast.parse(
+                    f"{prefix}{quote}{translation}{quote}",
+                    mode="eval")
+            except SyntaxError:
+                pass
             else:
-                return fquote
+                compiled = compiled.body
+                if isinstance(compiled, ast.JoinedStr) \
+                        or isinstance(compiled, ast.Constant) \
+                        and isinstance(compiled.value, str):
+                    return quote
 
         # No suitable quotes, raise an exception
         hints = ""
@@ -401,31 +425,24 @@ class StringTranslatorMultilingual(StringTranslatorBase):
             hints += f"\n- String {orig_str} is an f-string"
         else:
             hints += (
-                f"\n- Original string, {orig_str}, is not an f-string, "
-                f"but {make_list(need_f, 'seem')} to require f-strings "
-                "and auto-prefix option is set.")
+                "\n- Original string is not an f-string, but the translation \n"
+                "seems to be an f-string and auto-prefix option is set.")
         if config.smart_quotes:
             hints += \
                 "\n- I tried all quote types, even triple-quotes"
         else:
             hints += \
                 "\n- Try enabling smart quotes to allow changing the quote type"
-        if any(map(re_single_quote.search, messages)) \
-                and any(map(re_double_quote.search, messages)):
-            hints += \
-                "\n- Some translations use single quotes and some use double"
-        if len(fquote) != 3 and "\n" in "".join(messages[1:]):
+        if len(quote) != 3 and "\n" in translation:
             hints += \
                 "\n- Check for any unescaped \\n's"
 
-        languages = iter(config.languages.values())
-        original = f"{orig_str} ({next(languages).international_name})"
-        trans = "\n".join(f"  - {msg} ({langdef.international_name})"
-                          for msg, langdef in zip(messages[1:], languages))
+        languages = list(config.languages.values())
+        language = languages[language_index].international_name
         raise TranslationError(
-            f"Probable syntax error in translation of {orig_str}.\n"
-            f"Original: {original}\n"
-            f"Translations:\n{trans}\n"
+            f"Probable syntax error in translation to {language}.\n"
+            f"Original: {orig_str}\n"
+            f"Translation to {language}:\n  {translation}\n"
             "Some hints:" + hints)
 
     def translate(
@@ -450,13 +467,17 @@ class StringTranslatorMultilingual(StringTranslatorBase):
             translation if isinstance(translation, str) else original
             for translation in messages]
 
-        need_f = self._f_string_languages(node, messages)
-        prefix = "f" + node.prefix if need_f else node.prefix
-
         idx = len(self.message_tables[0])
-        if "f" in prefix:
-            quote = self._get_quote(node, orig_str, messages, prefix, need_f)
-            for message, table in zip(messages, self.message_tables):
+        need_f = self._f_string_languages(node, messages)
+        if need_f:
+            fprefix = node.prefix
+            if "f" not in fprefix:
+                fprefix = "f" + fprefix
+            for lang_idx, (message, table) in \
+                    enumerate(zip(messages, self.message_tables)):
+                prefix = fprefix if lang_idx in need_f else node.prefix
+                quote = self._get_quote(
+                    node, orig_str, message, lang_idx, prefix)
                 table.append(f"{prefix}{quote}{message}{quote}")
             trans = f'_tr.e(_tr.c({idx}, {orig_str}))'
         else:

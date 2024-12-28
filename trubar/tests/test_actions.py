@@ -387,35 +387,31 @@ class C:
 
         node.prefix = "f"
         node.quote = "'"
-        # Original is an f-string - don't add
-        self.assertEqual(m(node, ["a string", "one", "two{x}"]), [])
+        # Original is an f-string, and so is one of translations
+        self.assertEqual(m(node, ["a {s}tring", "one", "two{x}"]), {0, 2})
+
+        # Only original needs it
+        self.assertEqual(m(node, ["a {s}tring", "one", "two"]), {0})
 
         node.prefix = ""
         m = StringTranslatorMultilingual._f_string_languages
         # No language needs it
-        self.assertEqual(m(node, ["a string", "one", "two"]),
-                         [])
+        self.assertEqual(m(node, ["a string", "one", "two"]), set())
 
-        # English needs it
-        self.assertEqual(m(node, ["a string", "one", "two{x}"]),
-                         ["English (two{x})"])
-        # Slovenian and English needs it
-        self.assertEqual(m(node, ["a string", "one{y}", "two{x}"]),
-                         ["Slovenian (one{y})", "English (two{x})"])
         # Original is not an f-string, but has {},
         # hence translations are supposed to have them without being f-strings
-        self.assertEqual(m(node, ["a string{x}", "one{y}", "two{x}"]),
-                         [])
+        self.assertEqual(m(node, ["a string{x}", "one{y}", "two{x}"]), set())
 
+        # Original is not an f-string, but one of translations is
         for quote in ['"', "'", "'''", '"""']:
             self.assertEqual(m(node, ["a string", "one", f"t{quote}wo{{x}}"]),
-                             [f"English (t{quote}wo{{x}})"])
+                             {2})
 
-        # No smart quotes
-        with patch("trubar.config.config.smart_quotes", False):
+        # Original is not an f-string, and auto-prefix is off
+        with patch("trubar.config.config.auto_prefix", False):
             self.assertEqual(
                 m(node, ["a string", "on'e", "tw'o{x}"]),
-                [])
+                set())
 
     def test_get_quote(self):
         node = Mock()
@@ -424,65 +420,44 @@ class C:
         node.prefix = ""
         node.quote = '"'
         self.assertEqual(
-            m(node, "'a string'", ["a string", "one", "two{x}"],
-              "", ["English"]),
-            '"')
+            m(node, "'a string'", "a string", 2, ""), '"')
 
         node.quote = "'''"
         self.assertEqual(
-            m(node, "'a string'", ["a string", "one", "two{x}"],
-              "", ["English"]),
-            "'''")
+            m(node, "'a string'", "a string", 2, ""), "'''")
 
         node.quote = "'"
         self.assertEqual(
-            m(node, "'a string'", ["a string", "one", "two{x}"],
-              "", ["English"]),
-            "'")
+            m(node, "'a string'", "a string", 2, ""), "'")
 
         node.quote = "'"
         self.assertEqual(
-            m(node, "'a string'", ["a string", "one", "tw'o{x}"],
-              "", ["English"]),
-            '"')
+            m(node, "'a string'", "tw'o{x}", 2, ""), '"')
+
+        node.quote = "'"
+        self.assertIn(
+            m(node, "'a str'ing'", "a str'i\"ng", 2, ""),
+            ("'''", '"""'))
 
         node.quote = "'"
         self.assertEqual(
-            m(node, "'a str'ing'", ["a str'ing", "one", "two{x}"],
-              "", ["English"]),
-            '"')
-
-        node.quote = "'"
-        self.assertEqual(
-            m(node, "'a str'ing'", ["a str'ing", "on\"e", "two{x}"],
-              "", ["English"]),
-            "'''")
-
-        node.quote = "'"
-        self.assertEqual(
-            m(node, "'a str'''ing'", ["a str'''ing", "on\"e", "two{x}"],
-              "", ["English"]),
-            '"""')
+            m(node, "'a str'''ing'", "s\"tr'''i'n\"g", 2, ""), '"""')
 
         node.quote = "'"
         self.assertRaises(
             TranslationError,
-            m, node, "'a str'''ing'", ["a str'''ing", "one", "tw\"\"\"o{x}"],
-            "", ["English"])
+            m, node, "'a str'''ing'", "a \"\"\"s\"t\"r'''in'g", 2, "")
 
         with patch("trubar.config.config.smart_quotes", False):
             node.quote = "'"
             self.assertRaises(
                 TranslationError,
-                m, node, "'a str'ing'", ["a str'ing", "one", "two{x}"],
-                "", ["English"])
+                m, node, "'a str'ing'", "a str'ing", 2, "")
 
             node.quote = "'"
             self.assertRaises(
                 TranslationError,
-                m, node, "'a str'''ing'",
-                ["a str'''ing", "one", "tw\"\"\"o{x}"],
-                "", ["English"])
+                m, node, "'a str'''ing'", "a str'''ing", 2, "")
 
     def test_auto_prefix(self):
         # No f-strings, no problems
@@ -503,11 +478,11 @@ class C:
         self.assertEqual(translation, "print(_tr.e(_tr.c(0, f'fo{o}')))")
         self.assertEqual(tables, [["f'fo{o}'"], ["f'dont'"], ["f'fo{o}'"]])
 
-        # Original is not an f-string, one of translations is
+        # Original is not an f-string, one of translations is, one is not
         translation, tables = self._translate(
             "print('foo')", [{"foo": "do{n}t"}, {"foo": "bar"}])
         self.assertEqual(translation, "print(_tr.e(_tr.c(0, 'foo')))")
-        self.assertEqual(tables, [["f'foo'"], ["f'do{n}t'"], ["f'bar'"]])
+        self.assertEqual(tables, [["'foo'"], ["f'do{n}t'"], ["'bar'"]])
 
         with patch("trubar.config.config.auto_prefix", False):
             translation, tables = self._translate(
@@ -522,7 +497,7 @@ class C:
         self.assertEqual(translation, "print(_tr.e(_tr.c(0, f'foo')))")
         self.assertEqual(
             tables,
-            [["f'''foo'''"], ["f'''don't'''"], ["f'''x\"y'''"]])
+            [["f'foo'"], ["f\"don't\""], ["f'x\"y'"]])
 
         # One language has an f-string, and translations have different quotes
         self._translate(
@@ -530,7 +505,7 @@ class C:
         self.assertEqual(translation, "print(_tr.e(_tr.c(0, f'foo')))")
         self.assertEqual(
             tables,
-            [["f'''foo'''"], ["f'''don't'''"], ["f'''x\"y'''"]])
+            [["f'foo'"], ["f\"don't\""], ["f'x\"y'"]])
 
         with patch("trubar.config.config.smart_quotes", False):
             # Mismatching quotes
