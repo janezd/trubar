@@ -376,88 +376,35 @@ class C:
 """)
         self.assertEqual(
             message_tables,
-            [['msg1', 'msg2', 'msg3', 'foo', 'bar', 'f"baz{42}"', 'crux'],
-             ['msg4', 'msg5', 'msg6', 'sea food', 'bar', 'f"baz{42}"', ''],
-             ['msg7', 'msg8', 'msg8', 'foo', 'no-bar', 'f"bar(1)"', 'crux']]
+            [['msg1', 'msg2', 'msg3', 'foo', 'bar', "f'baz{42}'", 'crux'],
+             ['msg4', 'msg5', 'msg6', 'sea food', 'bar', "f'baz{42}'", ''],
+             ['msg7', 'msg8', 'msg8', 'foo', 'no-bar', "'bar(1)'", 'crux']]
         )
 
     def test_f_string_languages(self):
-        node = Mock()
         m = StringTranslatorMultilingual._f_string_languages
 
-        node.prefix = "f"
-        node.quote = "'"
         # Original is an f-string, and so is one of translations
-        self.assertEqual(m(node, ["a {s}tring", "one", "two{x}"]), {0, 2})
+        self.assertEqual(
+            m("f", "a {s}tring", ["a {s}tring", "one", "two{x}"]),
+            {2})
 
         # Only original needs it
-        self.assertEqual(m(node, ["a {s}tring", "one", "two"]), {0})
+        self.assertEqual(
+            m("f", "a {s}tring", ["a {s}tring", "one", "two"]),
+            set())
 
-        node.prefix = ""
         m = StringTranslatorMultilingual._f_string_languages
         # No language needs it
-        self.assertEqual(m(node, ["a string", "one", "two"]), set())
-
-        # Original is not an f-string, but has {},
-        # hence translations are supposed to have them without being f-strings
-        self.assertEqual(m(node, ["a string{x}", "one{y}", "two{x}"]), set())
+        self.assertEqual(
+            m("", "a string", ["a string", "one", "two"]),
+            set())
 
         # Original is not an f-string, but one of translations is
         for quote in ['"', "'", "'''", '"""']:
-            self.assertEqual(m(node, ["a string", "one", f"t{quote}wo{{x}}"]),
-                             {2})
-
-        # Original is not an f-string, and auto-prefix is off
-        with patch("trubar.config.config.auto_prefix", False):
             self.assertEqual(
-                m(node, ["a string", "on'e", "tw'o{x}"]),
-                set())
-
-    def test_get_quote(self):
-        node = Mock()
-        m = StringTranslatorMultilingual._get_quote
-
-        node.prefix = ""
-        node.quote = '"'
-        self.assertEqual(
-            m(node, "'a string'", "a string", 2, ""), '"')
-
-        node.quote = "'''"
-        self.assertEqual(
-            m(node, "'a string'", "a string", 2, ""), "'''")
-
-        node.quote = "'"
-        self.assertEqual(
-            m(node, "'a string'", "a string", 2, ""), "'")
-
-        node.quote = "'"
-        self.assertEqual(
-            m(node, "'a string'", "tw'o{x}", 2, ""), '"')
-
-        node.quote = "'"
-        self.assertIn(
-            m(node, "'a str'ing'", "a str'i\"ng", 2, ""),
-            ("'''", '"""'))
-
-        node.quote = "'"
-        self.assertEqual(
-            m(node, "'a str'''ing'", "s\"tr'''i'n\"g", 2, ""), '"""')
-
-        node.quote = "'"
-        self.assertRaises(
-            TranslationError,
-            m, node, "'a str'''ing'", "a \"\"\"s\"t\"r'''in'g", 2, "")
-
-        with patch("trubar.config.config.smart_quotes", False):
-            node.quote = "'"
-            self.assertRaises(
-                TranslationError,
-                m, node, "'a str'ing'", "a str'ing", 2, "")
-
-            node.quote = "'"
-            self.assertRaises(
-                TranslationError,
-                m, node, "'a str'''ing'", "a str'''ing", 2, "")
+                m("", "a string", ["a string", "one", f"t{quote}wo{{x}}"]),
+                {2})
 
     def test_auto_prefix(self):
         # No f-strings, no problems
@@ -476,7 +423,7 @@ class C:
         translation, tables = self._translate(
             "print(f'fo{o}')", [{"fo{o}": "dont"}, {}])
         self.assertEqual(translation, "print(_tr.e(_tr.c(0, f'fo{o}')))")
-        self.assertEqual(tables, [["f'fo{o}'"], ["f'dont'"], ["f'fo{o}'"]])
+        self.assertEqual(tables, [["f'fo{o}'"], ["'dont'"], ["f'fo{o}'"]])
 
         # Original is not an f-string, one of translations is, one is not
         translation, tables = self._translate(
@@ -497,7 +444,7 @@ class C:
         self.assertEqual(translation, "print(_tr.e(_tr.c(0, f'foo')))")
         self.assertEqual(
             tables,
-            [["f'foo'"], ["f\"don't\""], ["f'x\"y'"]])
+            [["f'foo'"], ['"don\'t"'], ['\'x"y\'']])
 
         # One language has an f-string, and translations have different quotes
         self._translate(
@@ -505,19 +452,7 @@ class C:
         self.assertEqual(translation, "print(_tr.e(_tr.c(0, f'foo')))")
         self.assertEqual(
             tables,
-            [["f'foo'"], ["f\"don't\""], ["f'x\"y'"]])
-
-        with patch("trubar.config.config.smart_quotes", False):
-            # Mismatching quotes
-            self.assertRaises(
-                TranslationError,
-                self._translate, "print(f'foo')", [{"foo": "do{n}'t"}, {}])
-
-            # Original has an f-string, but quotes are OK
-            translation, tables = self._translate(
-                'print(f"foo")', [{"foo": "don't"}, {"foo": "x'y"}])
-            self.assertEqual(translation, 'print(_tr.e(_tr.c(0, f"foo")))')
-            self.assertEqual(tables, [['f"foo"'], ['f"don\'t"'], ['f"x\'y"']])
+            [["f'foo'"], ["\"don't\""], ["'x\"y'"]])
 
     def test_syntax_error(self):
         tree = cst.parse_module("print('foo')")
@@ -525,6 +460,59 @@ class C:
         self.assertRaisesRegex(
             TranslationError,
             re.compile(".*foo.*bar.*", re.DOTALL), tree.visit, translator)
+
+    def test_raw_originals(self):
+        code = r"""
+x = r"a stri\ng"
+y = 'o\ne'
+z = 'four'
+        """.strip()
+        trans_source, messages_tables = self._translate(
+            code,
+            [{}, {r"a stri\ng": r"\niz", r"o\ne": r"e\na", "four": r"š\tiri"}])
+        self.assertEqual(
+            trans_source,
+            r"""
+x = _tr.m[0, r"a stri\ng"]
+y = _tr.m[1, 'o\ne']
+z = _tr.m[2, 'four']
+            """.strip())
+        # The crux of the test is that the second and the third string contain
+        # \n and \t, while the first one has a literal \ and n.
+        self.assertEqual(
+            messages_tables,
+            [[r'a stri\ng', 'o\ne', 'four'],
+             [r'a stri\ng', 'o\ne', 'four'],
+             [r'\niz', 'e\na', 'š\tiri']]
+        )
+
+        code = r"""
+x = rf"a stri\ng {x}"
+y = f'o\ne {x}'
+z = f'four {x}'
+        """.strip()
+        trans_source, messages_tables = self._translate(
+            code,
+            [{}, {r"a stri\ng {x}": r"\niz {x}",
+                  r"o\ne {x}": r"e\na {x}",
+                  "four {x}": r"š\tiri {x}"}])
+        self.assertEqual(
+            trans_source,
+            r"""
+x = _tr.e(_tr.c(0, rf"a stri\ng {x}"))
+y = _tr.e(_tr.c(1, f'o\ne {x}'))
+z = _tr.e(_tr.c(2, f'four {x}'))
+            """.strip())
+        # The crux of the test is that the second and the third string contain
+        # \n and \t, while the first one has a literal \ and n.
+        # Note double backslashes in comparison with the above test
+        # because strings these are evaled, unlike those above.
+        self.assertEqual(
+            messages_tables,
+            [[r"f'a stri\\ng {x}'", r"f'o\ne {x}'", "f'four {x}'"],
+             [r"f'a stri\\ng {x}'", r"f'o\ne {x}'", "f'four {x}'"],
+             [r"f'\\niz {x}'", r"f'e\na {x}'", r"f'š\tiri {x}'"]]
+        )
 
 
 class ActionsTest(unittest.TestCase):

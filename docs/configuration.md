@@ -17,6 +17,8 @@ The available options are
 `smart-quotes` (default: true)
 : If set to `false`, strings in translated sources will have the same quotes as in the original source. Otherwise, if translation of a single-quoted includes a single quote, Trubar will output a double-quoted string and vice-versa. If translated message contains both types of quotes, they must be escaped with backslash.
 
+    This setting has not effect in multilingual setup.
+
 `auto-prefix` (default: true)
 : If set, Trubar will turn strings into f-strings if translation contains braces and adding an f- prefix makes it a syntactically valid string, *unless* the original string already included braces, in which case this may had been a pattern for `str.format`.
 
