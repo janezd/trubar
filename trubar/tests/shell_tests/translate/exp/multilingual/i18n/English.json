@@ -1,1 +1,1 @@
-["English", "English", "f\"default\"", "f\"some/directory\"", "f\"File {x}\"", "f'Not file {x + \".bak\"}'", "f\"\"\"{\"nonsense\"}\"\"\"", "f'''Import it, if you must.'''", "Oranges"]
+["English", "English", "'default'", "'some/directory'", "f'File {x}'", "f'Not file {x + \".bak\"}'", "f'{\"nonsense\"}'", "'Import it, if you must.'", "Oranges"]
