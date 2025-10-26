@@ -1,9 +1,10 @@
 import re
-
+import json
 import os
 import sys
+from itertools import chain
 from pathlib import PurePath
-from typing import Iterator, Tuple, Optional, Set, List
+from typing import Iterator, Tuple, Optional, Set, List, Dict, Union, NamedTuple
 
 from trubar.config import config
 from trubar.messages import MsgDict, dump
@@ -84,3 +85,35 @@ def make_list(s: List[str], verb: Optional[str] = None):
         return s[0] + verb
     else:
         return ", ".join(s[:-1]) + " and " + s[-1] + verb
+
+
+class KeyMapping(NamedTuple):
+    path: Tuple[str, ...]
+    f_lang_idx: Tuple[int, ...] = ()
+    raw: bool = False
+
+MappingDict = Dict[str, Union[str, "MappingDict"]]
+
+def save_mapping(fname: str, languages, mapping: List[KeyMapping]):
+    empty = ((), False, ())
+    compressed = [
+        [s := next((i for i, (x, y) in enumerate(zip(prev, parts)) if x != y),
+                   len(prev)),
+         parts[s:]]
+        + ([f_lang_idx] if f_lang_idx or raw else [])
+        + ([raw] if raw else [])
+        for (prev, *_), (parts, f_lang_idx, raw) in zip(chain((empty, ), mapping),
+                                                        mapping)
+    ]
+    with open(fname, "w") as f:
+        json.dump([languages, compressed], f)
+
+
+def load_mapping(fname: str) -> Tuple[List[str], List[KeyMapping]]:
+    mapping = []
+    languages, compressed = json.load(open(fname, "r"))
+    with open(fname, "r") as f:
+        for (s, parts, *rest), (prev, *_) in zip(compressed,
+                                                 chain((KeyMapping(()), ), mapping)):
+            mapping.append(KeyMapping(prev[:s] + tuple(parts), *rest))
+    return languages, mapping

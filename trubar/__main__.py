@@ -4,11 +4,11 @@ import sys
 
 from trubar import translate
 from trubar.actions import \
-    collect, merge, missing, template, stat, \
+    collect, merge, missing, template, update_table, stat, \
     ReportCritical
 from trubar.messages import load, dump
 from trubar.config import config
-from trubar.utils import check_any_files, dump_removed
+from trubar.utils import check_any_files, dump_removed, load_mapping
 
 
 def check_dir_exists(path):
@@ -140,6 +140,14 @@ def main() -> None:
         "-o", "--output", metavar="output-file", required=True,
         help="missing translations")
 
+    parser = add_parser("update-table", "Update message table using a mapping file")
+    parser.add_argument(
+        "translations", metavar="translations",
+        help="file with existing translations")
+    parser.add_argument(
+        "-o", "--output", metavar="output-file", required=True,
+        help="message table")
+
     parser = add_parser("stat", "Show statistics about messages in the file")
     parser.add_argument(
         "messages", metavar="messages",
@@ -201,6 +209,12 @@ def main() -> None:
             if args.all_messages else translations
         needed = missing(translations, messages, pattern)
         dump(needed, args.output)
+
+    elif args.action == "update-table":
+        translations = load(args.translations)
+        languages, mapping = load_mapping(
+            os.path.split(args.output)[0] + "/mapping.txt")
+        update_table(translations, languages, mapping, args.output)
 
     elif args.action == "stat":
         messages = load(args.messages)
