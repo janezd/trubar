@@ -226,10 +226,10 @@ ghi: jkl
         self.assertRaisesRegex(
             jaml.JamlError, "Line 1: file ends.*", jaml.read, "'x: y")
         self.assertRaisesRegex(
-            jaml.JamlError, "Line 2: quoted key must be followed .*",
+            jaml.JamlError, "Line 2: quoted key starting in line 1 must be followed .*",
             jaml.read, '"x\ny"\na:b')
         self.assertRaisesRegex(
-            jaml.JamlError, "Line 2: quoted value must be followed .*",
+            jaml.JamlError, "Line 2: quoted value starting in line 1 must be followed .*",
             jaml.read, 'x: "\na": b')
         self.assertRaisesRegex(
             jaml.JamlError,

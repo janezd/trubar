@@ -78,9 +78,10 @@ def readlines(lines):
 
         # Get key
         if line[0] in "'\"":
+            start_line = lineno
             key, after = read_quoted(line)
             if after[:2] != ": ":
-                error("quoted key must be followed by a ': '")
+                error(f"quoted key starting in line {start_line} must be followed by a ': '")
             else:
                 value = after[2:].lstrip()
         else:
@@ -99,9 +100,11 @@ def readlines(lines):
         # Leaves
         if value.strip():
             if value[0] in "'\"":
+                start_line = lineno
                 value, after = read_quoted(value)
                 if after.strip():
-                    error("quoted value must be followed by end of line")
+                    error(f"quoted value starting in line {start_line} "
+                          "must be followed by end of line")
             else:
                 value = {"true": True, "false": False, "null": None
                          }.get(value.strip(), value)
