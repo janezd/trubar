@@ -1,6 +1,38 @@
 [build-system]
-requires = [
-  "setuptools >= 40.9.0",
-  "wheel",
-]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "trubar"
+version = "0.3.4"
+description = "Utility for translation of Python sources"
+readme = {text = "A tool for localization of Python messages via translating source files.", content-type = "text/markdown"}
+requires-python = ">=3.9"
+license = {text = "MIT AND (Apache-2.0 OR BSD-2-Clause)"}
+authors = [
+    {name = "Janez Demsar", email = "janez.demsar@fri.uni-lj.si"}
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Localization",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "libcst",
+    "pyyaml",
+]
+
+[project.urls]
+Documentation = "https://janezd.github.io/trubar"
+"Source code" = "https://github.com/janezd/trubar"
+"Bug tracker" = "https://github.com/janezd/trubar/issues"
+
+[project.optional-dependencies]
+docs = ["mkdocs"]
+
+[project.scripts]
+trubar = "trubar.__main__:main"
+
+[tool.setuptools]
+packages = {find = {where = ["."]}}
