@@ -8,7 +8,7 @@ from typing import Union, List, Optional, NamedTuple, Tuple, Dict
 import libcst as cst
 from libcst.metadata import ParentNodeProvider
 
-from trubar.utils import walk_files
+from trubar.utils import walk_files, save_mapping, KeyMapping
 from trubar.messages import MsgNode, MsgDict
 from trubar.config import config
 
@@ -331,20 +331,29 @@ class StringTranslator(StringTranslatorBase):
 class StringTranslatorMultilingual(StringTranslatorBase):
     def __init__(self,
                  contexts: List[MsgDict],
+                 key_stack: List[str],
                  message_tables: List[List[str]],
+                 key_mapping: List[KeyMapping],
                  module: cst.Module,
                  auto_import: Optional[cst.CSTNode] = None,
                  n_future_imports: Optional[int] = None,
                  has_docstring: bool = False):
         super().__init__(module, auto_import, n_future_imports, has_docstring)
         self.context_stack = [contexts]
+        self.key_stack = key_stack
         self.message_tables = message_tables
+        self.key_mapping = key_mapping
 
     def push_context(self, node: NamespaceNode) -> None:
         key = f"{prefix_for_node(node)}`{node.name.value}`"
         space = [lang_context[key].value if key in lang_context else {}
                  for lang_context in self.context]
         self.context_stack.append(space)
+        self.key_stack.append(key)
+
+    def pop_context(self) -> None:
+        super().pop_context()
+        self.key_stack.pop()
 
     @classmethod
     def _f_string_languages(cls,
@@ -416,9 +425,10 @@ class StringTranslatorMultilingual(StringTranslatorBase):
         else:
             need_f = set()
 
+        raw = "r" in node.prefix
         for lang_idx, (message, table) in \
                 enumerate(zip(messages, self.message_tables)):
-            if "r" not in node.prefix:
+            if not raw:
                 # unescape the translation: we need actual \n, not \ and n
                 message = message \
                     .encode('latin-1', 'backslashreplace') \
@@ -430,6 +440,13 @@ class StringTranslatorMultilingual(StringTranslatorBase):
                 if lang_idx in need_f:
                     message = "f" + message
             table.append(message)
+        self.key_mapping.append(
+            KeyMapping(
+                (*self.key_stack, original),
+                tuple(need_f),
+                raw,
+            )
+        )
 
         if need_f:
             trans = f'_tr.e(_tr.c({idx}, {orig_str}))'
@@ -517,8 +534,10 @@ def translate(translations: Dict[str, MsgDict],
     if config.languages:
         message_tables = [[language.name, language.international_name]
                           for language in config.languages.values()]
+        key_mapping = []
     else:
         message_tables = None
+        key_mapping = None
 
     for name, fullname in walk_files(source, pattern, select=False):
         transname = os.path.join(destination, name)
@@ -575,7 +594,7 @@ def translate(translations: Dict[str, MsgDict],
                     auto_import, n_future_imports, has_docstring)
             else:
                 translator = StringTranslatorMultilingual(
-                    trans_name, message_tables,
+                    trans_name, [name], message_tables, key_mapping,
                     tree,
                     auto_import, n_future_imports, has_docstring)
             tree = cst.metadata.MetadataWrapper(tree)
@@ -607,6 +626,9 @@ def translate(translations: Dict[str, MsgDict],
             fname = os.path.join(i18ndir, f"{langdef.international_name}.json")
             with open(fname, "wt", encoding=config.encoding) as f:
                 json.dump(messages, f)
+        languages = [langdef.international_name
+                     for langdef in config.languages.values()]
+        save_mapping(i18ndir, languages, key_mapping)
 
 def _any_translations(translations: MsgDict):
     return any(isinstance(value, str)
@@ -666,6 +688,40 @@ def template(existing: MsgDict, pattern: str = "") -> MsgDict:
         elif trans.value is not False:
             new_template[msg] = MsgNode(None, trans.comments)
     return new_template
+
+
+def update_messages(
+    translations: MsgDict,
+    messages: List[str],
+    mapping: List[KeyMapping],
+    lang_idx: int,
+) -> List[str]:
+    new_messages = []
+    for ((path, *parts), f_langs, raw), old in zip(mapping, messages):
+        node = translations.get(path)
+        if node is None or not isinstance(node.value, dict):
+            new_messages.append(old)
+            continue
+        for part in parts:
+            node = node.value.get(part)
+            if node is None or node.value is None:
+                new_messages.append(old)
+                break
+        else:
+            if isinstance(node.value, str):
+                message = node.value
+                if not raw:
+                    message = message \
+                        .encode('latin-1', 'backslashreplace') \
+                        .decode('unicode-escape')
+                if f_langs:
+                    message = repr(message)
+                    if lang_idx in f_langs:
+                        message = "f" + message
+                new_messages.append(message)
+            else:
+                new_messages.append(parts[-1])
+    return new_messages
 
 
 @dataclasses.dataclass

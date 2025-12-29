@@ -1,0 +1,18 @@
+__init__.py:
+    class `A`:
+        A class attribute: false
+        def `f`:
+            default: An {f} st'r"i'''ng
+            some/directory: true
+            File {x}: Datoteka {x}
+            Not file {x + ".bak"}: Ne datoteka {x + ".bak"}
+            '{"nonsense"}': '{"nesmisel"}'
+    __main__: false
+    Please don't run this.: null
+    Import it, if you must.: Uvozi, če že moraš.
+submodule/apples.py:
+    Oranges: Pomaranče
+trash/nothing.py:
+    def `f`:
+        To see here: null
+        ', really.': null

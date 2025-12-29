@@ -11,13 +11,14 @@ from contextlib import redirect_stdout
 import libcst as cst
 
 from trubar.actions import \
-    collect, missing, merge, template, \
+    collect, missing, merge, template, update_messages, \
     StringCollector, StringTranslator, StringTranslatorMultilingual, \
     CountImportsFromFuture, Stat, TranslationError
 
 from trubar import config
 from trubar.config import LanguageDef
 from trubar.messages import dict_from_msg_nodes, dict_to_msg_nodes, MsgNode
+from trubar.utils import KeyMapping
 from trubar.tests import yamlized
 import trubar.tests.test_module
 
@@ -314,14 +315,15 @@ class StringTranslatorMultilingualTest(unittest.TestCase):
     def tearDown(self):
         config.config.languages = None
 
-    def _translate(self, module, messages, add_initial=False):
+    def _translate(self, module, messages, add_initial=False, key_mapping=None):
         tree = cst.parse_module(module)
         message_tables = [["msg1", "msg2", "msg3"],
                           ["msg4", "msg5", "msg6"],
                           ["msg7", "msg8", "msg8"]] if add_initial else [[], [], []]
         translator = StringTranslatorMultilingual(
             [{}] + [dict_to_msg_nodes(d) for d in messages],
-            message_tables,
+            ["name"], message_tables,
+            key_mapping if key_mapping is not None else [],
             tree)
         translated = tree.visit(translator)
         trans_source = tree.code_for_node(translated)
@@ -356,8 +358,9 @@ class C:
                                                'class `B`': {
                                                    'baz{42}': "bar(1)"}}}}
 
+        key_mapping = [KeyMapping(path=('some', 'path'), f_lang_idx=(0, 1), raw=True)]
         trans_source, message_tables = self._translate(
-            module, [trans_foo, trans_fee], True)
+            module, [trans_foo, trans_fee], True, key_mapping)
         self.assertEqual(trans_source, """
 # A comment
 class A:
@@ -379,6 +382,19 @@ class C:
             [['msg1', 'msg2', 'msg3', 'foo', 'bar', "f'baz{42}'", 'crux'],
              ['msg4', 'msg5', 'msg6', 'sea food', 'bar', "f'baz{42}'", ''],
              ['msg7', 'msg8', 'msg8', 'foo', 'no-bar', "'bar(1)'", 'crux']]
+        )
+        self.assertEqual(
+            key_mapping,
+            [KeyMapping(path=('some', 'path'),
+                        f_lang_idx=(0, 1), raw=True),
+             KeyMapping(path=('name', 'class `A`', 'def `b`', 'def `c`', 'foo'),
+                        f_lang_idx=(), raw=False),
+             KeyMapping(path=('name', 'class `A`', 'def `b`', 'def `c`', 'bar'),
+                        f_lang_idx=(), raw=False),
+             KeyMapping(path=('name', 'class `A`', 'def `b`', 'class `B`', 'baz{42}'),
+                        f_lang_idx=(0, 1), raw=False),
+             KeyMapping(path=('name', 'class `C`', 'crux'),
+                        f_lang_idx=(), raw=False)]
         )
 
     def test_f_string_languages(self):
@@ -467,9 +483,11 @@ x = r"a stri\ng"
 y = 'o\ne'
 z = 'four'
         """.strip()
+        key_mapping = []
         trans_source, messages_tables = self._translate(
             code,
-            [{}, {r"a stri\ng": r"\niz", r"o\ne": r"e\na", "four": r"š\tiri"}])
+            [{}, {r"a stri\ng": r"\niz", r"o\ne": r"e\na", "four": r"š\tiri"}],
+            key_mapping=key_mapping)
         self.assertEqual(
             trans_source,
             r"""
@@ -485,17 +503,25 @@ z = _tr.m[2, 'four']
              [r'a stri\ng', 'o\ne', 'four'],
              [r'\niz', 'e\na', 'š\tiri']]
         )
+        self.assertEqual(
+            key_mapping,
+            [KeyMapping(path=('name', 'a stri\\ng'), f_lang_idx=(), raw=True),
+             KeyMapping(path=('name', 'o\\ne'), f_lang_idx=(), raw=False),
+             KeyMapping(path=('name', 'four'), f_lang_idx=(), raw=False)]
+        )
 
         code = r"""
 x = rf"a stri\ng {x}"
 y = f'o\ne {x}'
 z = f'four {x}'
         """.strip()
+        key_mapping = []
         trans_source, messages_tables = self._translate(
             code,
             [{}, {r"a stri\ng {x}": r"\niz {x}",
-                  r"o\ne {x}": r"e\na {x}",
-                  "four {x}": r"š\tiri {x}"}])
+                  r"o\ne {x}": r"e\na x",
+                  "four {x}": r"š\tiri {x}"}],
+            key_mapping=key_mapping)
         self.assertEqual(
             trans_source,
             r"""
@@ -511,7 +537,13 @@ z = _tr.e(_tr.c(2, f'four {x}'))
             messages_tables,
             [[r"f'a stri\\ng {x}'", r"f'o\ne {x}'", "f'four {x}'"],
              [r"f'a stri\\ng {x}'", r"f'o\ne {x}'", "f'four {x}'"],
-             [r"f'\\niz {x}'", r"f'e\na {x}'", r"f'š\tiri {x}'"]]
+             [r"f'\\niz {x}'", r"'e\na x'", r"f'š\tiri {x}'"]]
+        )
+        self.assertEqual(
+            key_mapping,
+            [KeyMapping(path=('name', 'a stri\\ng {x}'), f_lang_idx=(0, 1, 2), raw=True),
+             KeyMapping(path=('name', 'o\\ne {x}'), f_lang_idx=(0, 1), raw=False),
+             KeyMapping(path=('name', 'four {x}'), f_lang_idx=(0, 1, 2), raw=False)]
         )
 
 
@@ -756,6 +788,48 @@ def `m` not in target structure
         )
         self.assertEqual(yamlized(template)(messages, "f"), {"f": {"g": None}})
         self.assertEqual(yamlized(template)(messages, "g"), {})
+
+    def test_update_messages(self):
+        translations = {"name": {
+            'class `A`': {'def `b`': {'def `c`': {'foo': 'sea\\nfood',
+                                                  'bax': 'some bax',
+                                                  'qux': 'some qux'},
+                                      'baz': True,
+                                      'class `B`': {
+                                                   'baz{42}': False
+                                      }
+                                      }
+                          },
+           'class `C`': {'crux': "\\top"}
+        }}
+        key_mapping = [
+            KeyMapping(path=('some path', 'class `X`', 'foo'),
+                       f_lang_idx=(), raw=False),
+            KeyMapping(path=('name', 'class `A`', 'def `b`', 'def `c`', 'foo'),
+                       f_lang_idx=(), raw=False),
+            KeyMapping(path=('name', 'class `A`', 'def `b`', 'def `c`', 'bar'),
+                       f_lang_idx=(), raw=False),
+            KeyMapping(path=('name', 'class `A`', 'def `b`', 'def `c`', 'bax'),
+                       f_lang_idx=(1, 2), raw=False),
+            KeyMapping(path=('name', 'class `A`', 'def `b`', 'def `c`', 'qux'),
+                       f_lang_idx=(0, 2), raw=False),
+            KeyMapping(path=('name', 'class `A`', 'def `b`', 'class `B`', 'baz{42}'),
+                       f_lang_idx=(), raw=False),
+            KeyMapping(path=('name', 'class `C`', 'crux'),
+                       f_lang_idx=(), raw=True)
+        ]
+        messages = ['something', 'no food', 'no bar', 'no bax', 'no qux', 'no baz', 'no crux']
+        new_messages = update_messages(dict_to_msg_nodes(translations), messages, key_mapping, 1)
+        expected = [
+            'something',  # keep current translation, no new given
+            'sea\nfood',  # change, and change \\n to real \n because original was not raw
+            'no bar',  # keep current translation, no new given
+            "f'some bax'",  # this language has an f string translation
+            "'some qux'",  # some language has an f string translation
+            'baz{42}',  # remove current translation
+            '\\top'  # don't change because the original is raw
+        ]
+        self.assertEqual(new_messages, expected)
 
     def test_stat(self):
         messages = {

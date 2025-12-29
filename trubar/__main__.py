@@ -1,14 +1,15 @@
 import argparse
 import os
 import sys
+import json
 
 from trubar import translate
 from trubar.actions import \
-    collect, merge, missing, template, stat, \
+    collect, merge, missing, template, update_messages, stat, \
     ReportCritical
 from trubar.messages import load, dump
 from trubar.config import config
-from trubar.utils import check_any_files, dump_removed
+from trubar.utils import check_any_files, dump_removed, load_mapping
 
 
 def check_dir_exists(path):
@@ -140,6 +141,15 @@ def main() -> None:
         "-o", "--output", metavar="output-file", required=True,
         help="missing translations")
 
+    parser = add_parser("update-table",
+                        "Update message table using a mapping file")
+    parser.add_argument(
+        "translations", metavar="translations",
+        help="file with existing translations")
+    parser.add_argument(
+        "-o", "--output", metavar="output-file", required=True,
+        help="message table")
+
     parser = add_parser("stat", "Show statistics about messages in the file")
     parser.add_argument(
         "messages", metavar="messages",
@@ -201,6 +211,23 @@ def main() -> None:
             if args.all_messages else translations
         needed = missing(translations, messages, pattern)
         dump(needed, args.output)
+
+    elif args.action == "update-table":
+        output = args.output
+        translations = load(args.translations)
+        languages, mapping = load_mapping(os.path.split(output)[0])
+        with open(output, "r", encoding="utf-8") as f:
+            lang_name, intl_name, *messages = json.load(f)
+        if len(messages) != len(mapping):
+            print("Mapping and message table size do not match.")
+            sys.exit(6)
+        if intl_name not in languages:
+            print(f"Language '{intl_name}' not in mapping languages.")
+            sys.exit(7)
+        lang_idx = languages.index(intl_name)
+        new_messages = update_messages(translations, messages, mapping, lang_idx)
+        with open(output, "w", encoding="utf-8") as f:
+            json.dump([lang_name, intl_name] + new_messages, f)
 
     elif args.action == "stat":
         messages = load(args.messages)

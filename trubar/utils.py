@@ -1,9 +1,10 @@
 import re
-
+import json
 import os
 import sys
+from itertools import chain
 from pathlib import PurePath
-from typing import Iterator, Tuple, Optional, Set, List
+from typing import Iterator, Tuple, Optional, Set, List, Dict, Union, NamedTuple
 
 from trubar.config import config
 from trubar.messages import MsgDict, dump
@@ -84,3 +85,49 @@ def make_list(s: List[str], verb: Optional[str] = None):
         return s[0] + verb
     else:
         return ", ".join(s[:-1]) + " and " + s[-1] + verb
+
+
+class KeyMapping(NamedTuple):
+    path: Tuple[str, ...]
+    f_lang_idx: Tuple[int, ...] = ()
+    raw: bool = False
+
+MappingDict = Dict[str, Union[str, "MappingDict"]]
+
+def save_mapping(path: str, languages: List[str], mapping: List[KeyMapping]):
+    with open(os.path.join(path, "mapping.json"), "w", encoding="utf-8") as f:
+        json.dump([languages, _compressed(mapping)], f)
+
+def load_mapping(path: str) -> Tuple[List[str], List[KeyMapping]]:
+    fname = os.path.join(path, "mapping.json")
+    if not os.path.exists(fname):
+        print(f"Mapping file '{fname}' not found.")
+        sys.exit(8)
+    with open(fname, "r", encoding="utf-8") as f:
+        languages, compressed = json.load(f)
+    return languages, _decompressed(compressed)
+
+def _compressed(mapping: List[KeyMapping]) -> List:
+    empty = ((), (), False)
+    return [
+        [s := next((i for i, (x, y) in enumerate(zip(prev, parts)) if x != y),
+                   len(prev)),
+         parts[s:]]
+        + ([f_lang_idx] if f_lang_idx or raw else [])
+        + ([raw] if raw else [])
+        for (prev, *_), (parts, f_lang_idx, raw) in zip(chain((empty, ), mapping),
+                                                        mapping)
+    ]
+
+def _decompressed(compressed: List) -> List[KeyMapping]:
+    mapping = []
+    for (s, parts, *rest), (prev, *_) in zip(compressed,
+                                             chain((KeyMapping(()),), mapping)):
+        mapping.append(
+            KeyMapping(
+                prev[:s] + tuple(parts),
+                tuple(rest[0]) if rest else (),
+                rest[1] if len(rest) > 1 else False
+            )
+        )
+    return mapping

@@ -1,0 +1,10 @@
+languages:
+  foo:
+    name: Foo
+    international-name: Foolanguage
+  en:
+    name: English
+    original: true
+  si:
+    name: Slovenščina
+    international-name: Slovenian
