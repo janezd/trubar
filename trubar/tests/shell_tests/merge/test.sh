@@ -52,3 +52,16 @@ print_run 'trubar merge faulty_translations.yaml tmp/translations-copy.yaml -n' 
 diff tmp/translations-copy.yaml translations.yaml
 diff tmp/errors.txt tmp/errors.txt
 rm  tmp/translations-copy.yaml tmp/errors.txt
+
+echo "... clear existing unused file when there are no unused items"
+cp translations.yaml tmp/translations-copy.yaml
+echo "unused: unused" > tmp/unused.yaml
+print_run 'trubar merge new_translations.jaml translations.yaml -o tmp/updated_translations.yaml -u tmp/unused.yaml'
+if [ ! -f tmp/unused.yaml ]; then
+    echo "Error: -u didn't write a file"
+    exit 1
+elif [ -s tmp/unused.yaml ]; then
+    echo "Error: -u didn't clear the file, although there are no unused items"
+    exit 1
+fi
+rm tmp/translations-copy.yaml tmp/updated_translations.yaml tmp/unused.yaml

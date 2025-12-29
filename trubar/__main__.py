@@ -197,8 +197,12 @@ def main() -> None:
                        print_unused=not args.unused)
         if not args.dry_run:
             dump(existing, args.output or args.messages)
-        if args.unused and unused:
-            dump(unused, args.unused)
+        if args.unused:
+            if unused:
+                dump(unused, args.unused)
+            else:
+                with open(args.unused, "w", encoding="utf-8"):
+                    pass  # create empty file
 
     elif args.action == "template":
         existing = load(args.messages)
