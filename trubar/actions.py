@@ -8,7 +8,7 @@ from typing import Union, List, Optional, NamedTuple, Tuple, Dict
 import libcst as cst
 from libcst.metadata import ParentNodeProvider
 
-from trubar.utils import walk_files, save_mapping, MappingDict, KeyMapping
+from trubar.utils import walk_files, save_mapping, KeyMapping
 from trubar.messages import MsgNode, MsgDict
 from trubar.config import config
 
@@ -628,8 +628,7 @@ def translate(translations: Dict[str, MsgDict],
                 json.dump(messages, f)
         languages = [langdef.international_name
                      for langdef in config.languages.values()]
-        save_mapping(os.path.join(i18ndir, "mapping.txt"),
-                     languages, key_mapping)
+        save_mapping(i18ndir, languages, key_mapping)
 
 def _any_translations(translations: MsgDict):
     return any(isinstance(value, str)
@@ -691,25 +690,22 @@ def template(existing: MsgDict, pattern: str = "") -> MsgDict:
     return new_template
 
 
-def update_table(
+def update_messages(
     translations: MsgDict,
-    languages: List[str],
-    mapping: MappingDict, output: str
-):
-    with open(output, "rt") as f:
-        lang_name, intl_name, *old_messages = json.load(f)
-    lang_idx = languages.index(intl_name)
-
-    messages = [lang_name, intl_name]
-    for ((path, *parts), f_langs, raw), old in zip(mapping, old_messages):
+    messages: List[str],
+    mapping: List[KeyMapping],
+    lang_idx: int,
+) -> List[str]:
+    new_messages = []
+    for ((path, *parts), f_langs, raw), old in zip(mapping, messages):
         node = translations.get(path)
-        if node is None:
-            messages.append(old)
+        if node is None or not isinstance(node.value, dict):
+            new_messages.append(old)
             continue
         for part in parts:
             node = node.value.get(part)
             if node is None or node.value is None:
-                messages.append(old)
+                new_messages.append(old)
                 break
         else:
             if isinstance(node.value, str):
@@ -722,11 +718,10 @@ def update_table(
                     message = repr(message)
                     if lang_idx in f_langs:
                         message = "f" + message
-                messages.append(message)
+                new_messages.append(message)
             else:
-                messages.append(parts[-1])
-    with open(output, "wt") as f:
-        json.dump(messages, f)
+                new_messages.append(parts[-1])
+    return new_messages
 
 
 @dataclasses.dataclass

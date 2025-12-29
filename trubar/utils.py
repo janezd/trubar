@@ -94,9 +94,22 @@ class KeyMapping(NamedTuple):
 
 MappingDict = Dict[str, Union[str, "MappingDict"]]
 
-def save_mapping(fname: str, languages, mapping: List[KeyMapping]):
-    empty = ((), False, ())
-    compressed = [
+def save_mapping(path: str, languages: List[str], mapping: List[KeyMapping]):
+    with open(os.path.join(path, "mapping.json"), "w", encoding="utf-8") as f:
+        json.dump([languages, _compressed(mapping)], f)
+
+def load_mapping(path: str) -> Tuple[List[str], List[KeyMapping]]:
+    fname = os.path.join(path, "mapping.json")
+    if not os.path.exists(fname):
+        print(f"Mapping file '{fname}' not found.")
+        sys.exit(8)
+    with open(fname, "r", encoding="utf-8") as f:
+        languages, compressed = json.load(f)
+    return languages, _decompressed(compressed)
+
+def _compressed(mapping: List[KeyMapping]) -> List:
+    empty = ((), (), False)
+    return [
         [s := next((i for i, (x, y) in enumerate(zip(prev, parts)) if x != y),
                    len(prev)),
          parts[s:]]
@@ -105,15 +118,16 @@ def save_mapping(fname: str, languages, mapping: List[KeyMapping]):
         for (prev, *_), (parts, f_lang_idx, raw) in zip(chain((empty, ), mapping),
                                                         mapping)
     ]
-    with open(fname, "w") as f:
-        json.dump([languages, compressed], f)
 
-
-def load_mapping(fname: str) -> Tuple[List[str], List[KeyMapping]]:
+def _decompressed(compressed: List) -> List[KeyMapping]:
     mapping = []
-    languages, compressed = json.load(open(fname, "r"))
-    with open(fname, "r") as f:
-        for (s, parts, *rest), (prev, *_) in zip(compressed,
-                                                 chain((KeyMapping(()), ), mapping)):
-            mapping.append(KeyMapping(prev[:s] + tuple(parts), *rest))
-    return languages, mapping
+    for (s, parts, *rest), (prev, *_) in zip(compressed,
+                                             chain((KeyMapping(()),), mapping)):
+        mapping.append(
+            KeyMapping(
+                prev[:s] + tuple(parts),
+                tuple(rest[0]) if rest else (),
+                rest[1] if len(rest) > 1 else False
+            )
+        )
+    return mapping

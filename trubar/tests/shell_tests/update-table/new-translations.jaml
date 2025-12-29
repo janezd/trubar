@@ -1,0 +1,17 @@
+__init__.py:
+    class `A`:
+        A class attribute: no effect because this was not translated before
+        def `f`:
+            default: A different {f} st'r"i'''ng
+            some/directory: true
+            File {x}: Datoteka z imenom {x}
+            '{"nonsense"}': '{"nesmisel"}'
+    __main__: false
+    Please don't run this.: null
+    Import it, if you must.: null
+submodule/apples.py:
+    Oranges: false
+trash/nothing.py:
+    def `f`:
+        To see here: Videti tu
+        ', really.': null

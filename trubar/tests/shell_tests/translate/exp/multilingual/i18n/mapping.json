@@ -1,0 +1,1 @@
+[["English", "Foolanguage", "Slovenian"], [[0, ["__init__.py", "class `A`", "def `f`", "default"], [2]], [3, ["some/directory"], [1]], [3, ["File {x}"], [0, 1, 2]], [3, ["Not file {x + \".bak\"}"], [0, 1, 2]], [3, ["{\"nonsense\"}"], [0, 1, 2]], [1, ["Import it, if you must."], [1]], [0, ["submodule/apples.py", "Oranges"]]]]

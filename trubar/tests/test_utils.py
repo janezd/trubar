@@ -1,4 +1,5 @@
 import os
+import tempfile
 from pathlib import PureWindowsPath
 
 import unittest
@@ -6,7 +7,9 @@ import unittest
 from unittest.mock import patch, Mock
 
 from trubar.utils import \
-    walk_files, check_any_files, unique_name, dump_removed, make_list
+    walk_files, check_any_files, unique_name, dump_removed, make_list, \
+    KeyMapping, _compressed, _decompressed, save_mapping, load_mapping
+
 from trubar.config import config
 import trubar.tests.test_module
 
@@ -230,6 +233,44 @@ class UtilsTest(unittest.TestCase):
         self.assertEqual(make_list(["a"], "use"), "a uses")
         self.assertEqual(make_list(["a", "b", "c"], "use"), "a, b and c use")
 
+class TestMappingCompression(unittest.TestCase):
+    key_mapping = [
+        KeyMapping(path=('some', 'path'), f_lang_idx=(0, 1), raw=True),
+        KeyMapping(path=('some', 'other', 'path', 'somewhere'), f_lang_idx=(0, 1), raw=True),
+        KeyMapping(path=('some', 'other', 'path', 'elsewhere')),
+        KeyMapping(path=('some', 'third', 'path'), raw=True),
+        KeyMapping(path=('some', 'completely', 'different'), raw=False),
+        KeyMapping(path=('some', 'completely', 'beyond', 'different'), raw=False),
+        KeyMapping(path=('really', 'different'), f_lang_idx=(0, 1), raw=True),
+        KeyMapping(path=('really', 'really', 'different'), f_lang_idx=(0, 1), raw=True),
+        KeyMapping(path=('not-same',), f_lang_idx=(0, 1), raw=True)
+    ]
+
+    def test_compression(self):
+        compressed = _compressed(self.key_mapping)
+        self.assertEqual(
+            compressed,
+            [[0, ('some', 'path'), (0, 1), True],
+             [1, ('other', 'path', 'somewhere'), (0, 1), True],
+             [3, ('elsewhere',)],
+             [1, ('third', 'path'), (), True],
+             [1, ('completely', 'different')],
+             [2, ('beyond', 'different')],
+             [0, ('really', 'different'), (0, 1), True],
+             [1, ('really', 'different'), (0, 1), True],
+             [0, ('not-same',), (0, 1), True]]
+        )
+
+        self.assertEqual(_decompressed(compressed), self.key_mapping)
+
+    def test_loading_saving(self):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            languages = ["en", "fr", "de"]
+            save_mapping(tmpdirname, languages, self.key_mapping)
+            loaded_languages, loaded_mapping = load_mapping(tmpdirname)
+
+            self.assertEqual(loaded_languages, languages)
+            self.assertEqual(loaded_mapping, self.key_mapping)
 
 if __name__ == "__main__":
     unittest.main()
